@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+  <meta charset=UTF-8 />
+  <title>writesomething.fun</title>
+  <meta name=viewport content=width=device-width, initial-scale=1 />
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: radial-gradient(circle at top, #020617, #000);
+      color: #e5e7eb;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      max-width: 900px;
+      width: 100%;
+      padding: 40px;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+
+    p {
+      color: #94a3b8;
+      margin-bottom: 30px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    a.card {
+      display: block;
+      padding: 20px;
+      border-radius: 12px;
+      background: #020617;
+      border: 1px solid #1e293b;
+      text-decoration: none;
+      color: #e5e7eb;
+      transition: transform 0.15s ease, border 0.15s ease;
+    }
+
+    a.card:hover {
+      transform: translateY(-4px);
+      border-color: #38bdf8;
+    }
+
+    .card h3 {
+      margin: 0 0 8px 0;
+    }
+
+    .card span {
+      color: #94a3b8;
+      font-size: 14px;
+    }
+
+    .radio-stations {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .radio-link {
+      display: block;
+      padding: 12px;
+      border-radius: 8px;
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      text-decoration: none;
+      color: #38bdf8;
+      font-size: 14px;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+
+    .radio-link:hover {
+      background: #1e293b;
+      border-color: #38bdf8;
+    }
+
+    footer {
+      margin-top: 40px;
+      color: #475569;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class=container>
+    <h1>writesomething.fun</h1>
+    <p>A collection of personal tools, experiments, and utilities.</p>
+
+    <div class=grid>
+      <a class=card href=https://dump.writesomething.fun>
+        <h3> Dump</h3>
+        <span>Upload & share files (Dropbox / Pastebin hybrid)</span>
+      </a>
+
+      <a class=card href=https://dump.writesomething.fun/files>
+        <h3> Public Files</h3>
+        <span>Browse all uploaded files</span>
+      </a>
+
+      <a class=card href=https://draw.writesomething.fun>
+        <h3> Whiteboard</h3>
+        <span>Collaborative drawing & diagramming</span>
+      </a>
+
+      <div class=card>
+        <h3> Radio Stations</h3>
+        <span>24/7 music streaming - click to listen</span>
+        <div class=radio-stations>
+          <a class=radio-link href=https://radio.writesomething.fun/daftpunk>Daft Punk</a>
+          <a class=radio-link href=https://radio.writesomething.fun/lifafa>Lifafa</a>
+          <a class=radio-link href=https://radio.writesomething.fun/marathi>Marathi</a>
+          <a class=radio-link href=https://radio.writesomething.fun/hindiold>Hindi Old</a>
+          <a class=radio-link href=https://radio.writesomething.fun/gazals>Gazals</a>
+          <a class=radio-link href=https://radio.writesomething.fun/roadtrip>Road Trip</a>
+          <a class=radio-link href=https://radio.writesomething.fun/rap>Rap</a>
+        </div>
+      </div>
+
+      <a class=card href=https://server.writesomething.fun>
+        <h3> Server</h3>
+        <span>Internal server / dashboards</span>
+      </a>
+    </div>
+
+    <footer>
+      Built by you  Powered by Cloudflare Tunnel
+    </footer>
+  </div>
+</body>
+</html>

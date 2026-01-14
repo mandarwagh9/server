@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  icecast:
+    image: moul/icecast
+    container_name: icecast
+    restart: unless-stopped
+    ports:
+      - '8080:8000'
+    environment:
+      - ICECAST_SOURCE_PASSWORD=hackme
+      - ICECAST_ADMIN_PASSWORD=hackme
+      - ICECAST_RELAY_PASSWORD=hackme
+      - ICECAST_HOSTNAME=radio.writesomething.fun
+    volumes:
+      - ./config/icecast.xml:/etc/icecast2/icecast.xml:ro
+
+  liquidsoap:
+    image: savonet/liquidsoap:main
+    container_name: liquidsoap
+    restart: unless-stopped
+    depends_on:
+      - icecast
+    volumes:
+      - ./music:/music
+      - ./config/radio.liq:/radio.liq:ro
+    command: /radio.liq

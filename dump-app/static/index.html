@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dump</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .box {
+      background: #020617;
+      border: 2px dashed #334155;
+      padding: 40px;
+      width: 420px;
+      text-align: center;
+      border-radius: 12px;
+    }
+
+    .box.dragover {
+      border-color: #38bdf8;
+    }
+
+    input {
+      display: none;
+    }
+
+    button {
+      margin-top: 16px;
+      padding: 10px 16px;
+      background: #38bdf8;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .progress-container {
+      margin-top: 20px;
+      display: none;
+    }
+
+    .progress-bar {
+      height: 10px;
+      background: #1e293b;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: #38bdf8;
+      transition: width 0.2s ease;
+    }
+
+    .progress-text {
+      margin-top: 8px;
+      font-size: 14px;
+      color: #94a3b8;
+    }
+
+    .link {
+      margin-top: 16px;
+      word-break: break-all;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="box" id="dropBox">
+  <h2>📦 Dump</h2>
+  <p>Drag & drop a file here</p>
+  <p>or</p>
+  <button id="uploadBtn">Select file</button>
+  <input type="file" id="fileInput" />
+
+  <div class="progress-container" id="progressContainer">
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div class="progress-text" id="progressText">Uploading…</div>
+  </div>
+
+  <div class="link" id="result"></div>
+</div>
+
+<script>
+  const dropBox = document.getElementById("dropBox");
+  const fileInput = document.getElementById("fileInput");
+  const uploadBtn = document.getElementById("uploadBtn");
+  const result = document.getElementById("result");
+  const progressContainer = document.getElementById("progressContainer");
+  const progressFill = document.getElementById("progressFill");
+  const progressText = document.getElementById("progressText");
+
+  uploadBtn.onclick = () => fileInput.click();
+
+  function upload(file) {
+    const xhr = new XMLHttpRequest();
+    const formData = new FormData();
+    formData.append("file", file);
+
+    uploadBtn.disabled = true;
+    progressContainer.style.display = "block";
+    progressFill.style.width = "0%";
+    progressText.textContent = "Uploading…";
+    result.textContent = "";
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        const percent = Math.round((e.loaded / e.total) * 100);
+        progressFill.style.width = percent + "%";
+        progressText.textContent = `Uploading… ${percent}%`;
+      }
+    };
+
+    xhr.onload = () => {
+      uploadBtn.disabled = false;
+
+      if (xhr.status === 200) {
+        const data = JSON.parse(xhr.responseText);
+        const url = location.origin + data.download_url;
+        progressText.textContent = "Upload complete ✅";
+        result.innerHTML = `<a href="${url}" target="_blank">${url}</a>`;
+      } else {
+        progressText.textContent = "Upload failed ❌";
+      }
+    };
+
+    xhr.onerror = () => {
+      uploadBtn.disabled = false;
+      progressText.textContent = "Upload error ❌";
+    };
+
+    xhr.open("POST", "/upload");
+    xhr.send(formData);
+  }
+
+  fileInput.onchange = () => upload(fileInput.files[0]);
+
+  dropBox.ondragover = e => {
+    e.preventDefault();
+    dropBox.classList.add("dragover");
+  };
+
+  dropBox.ondragleave = () => {
+    dropBox.classList.remove("dragover");
+  };
+
+  dropBox.ondrop = e => {
+    e.preventDefault();
+    dropBox.classList.remove("dragover");
+    upload(e.dataTransfer.files[0]);
+  };
+</script>
+
+</body>
+</html>

@@ -1,0 +1,31 @@
+# Music files (too large for git)
+radio/music/
+
+# Data and uploads
+dump-app/data/
+data/
+
+# Docker volumes
+**/volumes/
+
+# Cloudflared credentials
+.cloudflared/
+*.json
+
+# Logs
+*.log
+logs/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Node modules
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+venv/
+data/

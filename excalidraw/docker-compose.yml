@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  excalidraw:
+    image: excalidraw/excalidraw:latest
+    container_name: excalidraw
+    restart: unless-stopped
+    ports:
+      - '5000:80'
+    environment:
+      - VITE_APP_WS_SERVER_URL=wss://collab.writesomething.fun
+      - VITE_APP_DISABLE_TRACKING=true
+    depends_on:
+      - excalidraw-room
+
+  excalidraw-room:
+    image: excalidraw/excalidraw-room:latest
+    container_name: excalidraw-room
+    restart: unless-stopped
+    ports:
+      - '5001:80'
+    environment:
+      - STORAGE_BACKEND=memory
