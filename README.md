@@ -8,7 +8,6 @@ Self-hosted multi-service platform running on Ubuntu 24.04 with Cloudflare Tunne
 - **24/7 Radio** - Music stations at radio.writesomething.fun
 - **File Dump** - Pastebin/file sharing at dump.writesomething.fun
 - **Grafana** - Metrics dashboards at server.writesomething.fun
-- **MachineAuth** - OAuth for AI agents at auth.writesomething.fun
 
 ## Architecture
 
@@ -56,7 +55,4 @@ cd monitoring
 docker-compose up -d
 ```
 
-### MachineAuth (OAuth)
-- OAuth 2.0 server for AI agents
-- Admin dashboard: https://authadmin.writesomething.fun
-- Login: admin@example.com / changeme
+
