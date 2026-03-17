@@ -6,7 +6,7 @@ services:
     container_name: icecast
     restart: unless-stopped
     ports:
-      - '8080:8000'
+      - '8888:8000'
     environment:
       - ICECAST_SOURCE_PASSWORD=hackme
       - ICECAST_ADMIN_PASSWORD=hackme
