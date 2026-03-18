@@ -1,58 +1,34 @@
 # writesomething.fun
 
-Self-hosted multi-service platform running on Ubuntu 24.04 with Cloudflare Tunnel.
+Self-hosted multi-service platform on Ubuntu 24.04 via Cloudflare Tunnel.
 
 ## Services
 
-- **Excalidraw** - Collaborative whiteboard at draw.writesomething.fun
-- **24/7 Radio** - Music stations at radio.writesomething.fun
-- **File Dump** - Pastebin/file sharing at dump.writesomething.fun
-- **Grafana** - Metrics dashboards at server.writesomething.fun
+- **Radio** - 24/7 music streaming at radio.writesomething.fun
+- **Dump** - File uploads, pastebin, and link bookmarks at dump.writesomething.fun
+- **Draw** - Collaborative whiteboard at draw.writesomething.fun
+- **Dashboard** - Server monitoring at server.writesomething.fun
 
 ## Architecture
 
-- Docker + docker-compose for containerization
-- Cloudflare Tunnel for zero-config public routing (no port forwarding)
-- Icecast + Liquidsoap for radio streaming
+- Docker + docker-compose for containers
+- Cloudflare Tunnel for public routing (no port forwarding)
+- Icecast + Liquidsoap for radio
 - FastAPI for dump service
-- Grafana + Prometheus for metrics & monitoring
+- Grafana + Prometheus for monitoring
 
-## Quick Start
-
-1. Clone this repo
-2. Copy example configs
-3. Set up Cloudflare Tunnel
-4. Run `docker-compose up -d` in each service directory
-
-## Services Setup
+## Setup
 
 ### Radio
-- Music stations: Daft Punk, Lifafa, Marathi, Hindi Old, Gazals, Road Trip, Rap
-- Music files not included
-- Place MP3s in `radio/music/[station-name]/` directories
+Music files not included. Place MP3s in `radio/music/[station]/` directories.
 
-### Dump App
-- FastAPI backend on port 4000
-- File storage in `/data/dump/`
+### Dump
+FastAPI on port 4000. File storage at `/data/dump/`.
+Dumps: `/` - Paste: `/paste` - Links: `/links` - Files: `/files`
 
-### Excalidraw
-- Frontend: port 5000
-- Collab server: port 5001
-
-### Monitoring (Grafana + Prometheus)
-- Grafana: https://server.writesomething.fun
-- Login: admin / admin123
-- Prometheus: port 9090
-- Includes dashboards:
-  - Home (overview)
-  - System Overview (CPU, RAM, Disk, Network)
-  - Nginx Traffic (requests, status codes, connections)
-  - Docker Containers (per-container metrics)
-
-Setup:
-```bash
+### Monitoring
+```
 cd monitoring
 docker-compose up -d
 ```
-
-
+Grafana: https://server.writesomething.fun (admin / admin123)
