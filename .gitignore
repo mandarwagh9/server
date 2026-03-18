@@ -10,7 +10,7 @@ data/
 
 # Cloudflared credentials
 .cloudflared/
-*.json
+cloudflared/*.json
 
 # Logs
 *.log
