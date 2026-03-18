@@ -1,9 +1,14 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Request
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request, Form
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import uuid
 import os
+import sqlite3
+import hashlib
+import time
+import mimetypes
+from typing import Optional
 
 # --------------------------------------------------
 # Paths
@@ -23,97 +28,519 @@ app = FastAPI(title="writesomething.fun", version="1.0.0")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # --------------------------------------------------
+# Database (SQLite) for file metadata
+# --------------------------------------------------
+DB_PATH = UPLOAD_DIR / "files.db"
+
+
+def get_db():
+    conn = getattr(app.state, "db_conn", None)
+    if conn is None:
+        conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA journal_mode=WAL;")
+        app.state.db_conn = conn
+    return app.state.db_conn
+
+
+def init_db():
+    conn = get_db()
+    conn.execute("""
+    CREATE TABLE IF NOT EXISTS files (
+        id TEXT PRIMARY KEY,
+        filename TEXT,
+        mime TEXT,
+        size INTEGER,
+        uploaded_at INTEGER,
+        checksum TEXT,
+        folder TEXT DEFAULT '',
+        is_deleted INTEGER DEFAULT 0,
+        deleted_at INTEGER
+    )
+    """)
+    conn.execute("""
+    CREATE TABLE IF NOT EXISTS folders (
+        name TEXT PRIMARY KEY,
+        created_at INTEGER
+    )
+    """)
+    conn.execute("""
+    CREATE TABLE IF NOT EXISTS suggestions (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        description TEXT,
+        author TEXT,
+        upvotes INTEGER DEFAULT 0,
+        status TEXT DEFAULT 'pending',
+        created_at INTEGER,
+        ip_address TEXT
+    )
+    """)
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_uploaded_at ON files(uploaded_at DESC)"
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_folder ON files(folder)")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_suggestion_created ON suggestions(created_at DESC)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_suggestion_upvotes ON suggestions(upvotes DESC)"
+    )
+    conn.commit()
+
+
+def migrate_existing_files():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("PRAGMA table_info(files)")
+    columns = [column[1] for column in cur.fetchall()]
+    if "folder" not in columns:
+        cur.execute("ALTER TABLE files ADD COLUMN folder TEXT DEFAULT ''")
+
+    cur.execute("PRAGMA table_info(folders)")
+    folder_cols = [column[1] for column in cur.fetchall()]
+    if "name" not in folder_cols:
+        cur.execute("""
+        CREATE TABLE folders (
+            name TEXT PRIMARY KEY,
+            created_at INTEGER
+        )
+        """)
+
+    for f in UPLOAD_DIR.iterdir():
+        if f.is_dir():
+            continue
+        if f.name == DB_PATH.name:
+            continue
+        if "_" not in f.name:
+            continue
+        file_id, name = f.name.split("_", 1)
+        cur.execute("SELECT 1 FROM files WHERE id=?", (file_id,))
+        if cur.fetchone():
+            continue
+        stat = f.stat()
+        uploaded_at = int(stat.st_mtime)
+        size = stat.st_size
+        mime = mimetypes.guess_type(f.name)[0] or "application/octet-stream"
+        cur.execute(
+            "INSERT INTO files (id, filename, mime, size, uploaded_at, checksum) VALUES (?,?,?,?,?,?)",
+            (file_id, name, mime, size, uploaded_at, None),
+        )
+    conn.commit()
+
+
+try:
+    init_db()
+    migrate_existing_files()
+except Exception as e:
+    print("DB init/migration error:", e)
+
+
+# --------------------------------------------------
 # ROOT ROUTE (HOST-BASED)
 # --------------------------------------------------
 @app.get("/", response_class=HTMLResponse)
 def root(request: Request):
     host = request.headers.get("host", "")
 
-    # Root domain → Landing page
     if host == "writesomething.fun" or host.startswith("writesomething.fun"):
         landing = STATIC_DIR / "landing.html"
         if landing.exists():
             return landing.read_text(encoding="utf-8")
         return HTMLResponse("<h1>Landing page missing</h1>", status_code=500)
 
-    # Dump subdomain → Upload UI
     index = STATIC_DIR / "index.html"
     if index.exists():
         return index.read_text(encoding="utf-8")
 
     return HTMLResponse("<h1>UI missing</h1>", status_code=500)
 
+
 # --------------------------------------------------
-# PUBLIC FILE LIST
+# FOLDER MANAGEMENT API
+# --------------------------------------------------
+@app.get("/api/folders")
+def get_folders():
+    conn = get_db()
+    cur = conn.cursor()
+    # Get folders from both files and explicit folders table
+    cur.execute(
+        "SELECT DISTINCT folder FROM files WHERE folder != '' AND is_deleted = 0"
+    )
+    file_folders = [row[0] for row in cur.fetchall() if row[0]]
+
+    cur.execute("SELECT name FROM folders ORDER BY name")
+    explicit_folders = [row[0] for row in cur.fetchall()]
+
+    # Merge and dedupe
+    all_folders = list(set(file_folders + explicit_folders))
+    all_folders.sort()
+    return {"folders": all_folders}
+
+
+@app.post("/api/folders")
+def create_folder(folder_data: dict):
+    folder_name = folder_data.get("name", "").strip()
+    if not folder_name:
+        raise HTTPException(status_code=400, detail="Folder name is required")
+
+    # Validate folder name
+    if "/" in folder_name or "\\" in folder_name:
+        raise HTTPException(status_code=400, detail="Invalid folder name")
+
+    # Create folder directory
+    folder_path = UPLOAD_DIR / folder_name
+    folder_path.mkdir(exist_ok=True)
+
+    # Store in database
+    conn = get_db()
+    conn.execute(
+        "INSERT OR IGNORE INTO folders (name, created_at) VALUES (?, ?)",
+        (folder_name, int(time.time())),
+    )
+    conn.commit()
+
+    return {
+        "message": "Folder '" + folder_name + "' created successfully",
+        "name": folder_name,
+    }
+
+
+@app.delete("/api/folders/{folder_name}")
+def delete_folder(folder_name: str):
+    folder_name = folder_name.strip()
+    if not folder_name:
+        raise HTTPException(status_code=400, detail="Folder name required")
+
+    folder_path = UPLOAD_DIR / folder_name
+
+    # Check if folder exists on disk
+    if not folder_path.exists():
+        raise HTTPException(status_code=404, detail="Folder not found")
+
+    # Check if folder has files
+    files_in_folder = list(folder_path.glob("*"))
+    files_in_folder = [f for f in files_in_folder if f.name != "thumbs"]
+
+    if files_in_folder:
+        raise HTTPException(status_code=400, detail="Folder is not empty")
+
+    # Remove from database
+    conn = get_db()
+    conn.execute("DELETE FROM folders WHERE name = ?", (folder_name,))
+    conn.commit()
+
+    # Remove directory
+    folder_path.rmdir()
+
+    return {"message": f"Folder '{folder_name}' deleted"}
+
+
+# --------------------------------------------------
+# PUBLIC FILE LIST (File Explorer UI)
 # --------------------------------------------------
 @app.get("/files", response_class=HTMLResponse)
-def list_files():
-    rows = []
+def list_files(request: Request):
+    current_folder = request.query_params.get("folder", "") or ""
 
-    for file in sorted(UPLOAD_DIR.iterdir(), key=os.path.getmtime, reverse=True):
-        if "_" not in file.name:
-            continue
+    # Build breadcrumb
+    if current_folder:
+        parts = current_folder.split("/")
+        breadcrumb = f'<a href="/files">📂 Root</a>'
+        path_so_far = ""
+        for i, part in enumerate(parts):
+            path_so_far += part if i == 0 else "/" + part
+            breadcrumb += f' <span>/</span> <span class="current">{part}</span>'
+    else:
+        breadcrumb = '<span class="current">📁 All Files</span>'
 
-        file_id, name = file.name.split("_", 1)
-        size_mb = file.stat().st_size / (1024 * 1024)
+    # Get files and folders
+    file_rows = ""
+    files_count = 0
 
-        rows.append(f"""
-        <tr>
-          <td>{name}</td>
-          <td>{size_mb:.2f} MB</td>
-          <td><a href="/file/{file_id}" target="_blank">Download</a></td>
-        </tr>
-        """)
+    if current_folder:
+        folder_path = UPLOAD_DIR / current_folder
+        if folder_path.exists():
+            for item in sorted(
+                folder_path.iterdir(), key=os.path.getmtime, reverse=True
+            ):
+                if "_" not in item.name or item.name == "files.db":
+                    continue
+                file_id, name = item.name.split("_", 1)
+                size_mb = item.stat().st_size / (1024 * 1024)
+                mime = mimetypes.guess_type(name)[0] or ""
 
-    return HTMLResponse(f"""
-    <html>
-    <head>
-      <title>Public Files</title>
-      <style>
-        body {{
-          font-family: system-ui;
-          background: #0f172a;
-          color: #e5e7eb;
-          padding: 40px;
-        }}
-        table {{
-          width: 100%;
-          border-collapse: collapse;
-        }}
-        th, td {{
-          padding: 12px;
-          border-bottom: 1px solid #334155;
-        }}
-        a {{
-          color: #38bdf8;
-        }}
-      </style>
-    </head>
-    <body>
-      <h1>Public Files</h1>
-      <p><a href="/">⬅ Back</a></p>
-      <table>
-        <tr>
-          <th>File</th>
-          <th>Size</th>
-          <th></th>
-        </tr>
-        {''.join(rows)}
-      </table>
-    </body>
-    </html>
-    """)
+                # Icon based on type
+                if mime.startswith("image/"):
+                    icon = f'<img src="/file/{file_id}/thumb" class="file-thumb" onerror="this.style.display=\'none\';this.parentElement.innerHTML=📄">'
+                elif mime.startswith("video/"):
+                    icon = "🎬"
+                elif mime.startswith("audio/"):
+                    icon = "🎵"
+                elif mime.startswith("text/"):
+                    icon = "📝"
+                elif "pdf" in mime:
+                    icon = "📕"
+                elif "zip" in mime or "rar" in mime or "tar" in mime or "gz" in mime:
+                    icon = "📦"
+                else:
+                    icon = "📄"
+
+                file_rows += f"""
+                <div class="file-row">
+                  <div class="file-info">
+                    <div class="file-icon">{icon}</div>
+                    <span class="file-name">{name}</span>
+                  </div>
+                  <div class="file-size">{size_mb:.2f} MB</div>
+                  <div class="file-actions">
+                    <button class="file-action" onclick="window.open('/file/{file_id}', '_blank')" title="Download">⬇️</button>
+                    <button class="file-action delete" onclick="deleteFile('{file_id}', '{name.replace("'", "\\'")}')" title="Delete">🗑️</button>
+                  </div>
+                </div>"""
+                files_count += 1
+    else:
+        # Root folder - show folders first, then files
+        folders = []
+        files = []
+
+        for item in sorted(UPLOAD_DIR.iterdir(), key=os.path.getmtime, reverse=True):
+            if item.name == "files.db" or item.name == "thumbs":
+                continue
+
+            if item.is_dir():
+                folder_files = [f for f in item.glob("*") if f.name != "thumbs"]
+                folders.append((item.name, len(folder_files)))
+            elif "_" in item.name:
+                files.append(item)
+
+        # Show folders
+        for folder_name, count in sorted(folders):
+            file_rows += f"""
+            <div class="file-row folder" onclick="navigateToFolder('{folder_name}')">
+              <div class="file-info">
+                <div class="file-icon">📁</div>
+                <span class="file-name">{folder_name}</span>
+              </div>
+              <div class="file-size">{count} item{"s" if count != 1 else ""}</div>
+              <div class="file-actions">
+                <button class="file-action delete" onclick="event.stopPropagation(); deleteFolder('{folder_name}')" title="Delete">🗑️</button>
+              </div>
+            </div>"""
+            files_count += 1
+
+        # Show files
+        for item in files:
+            file_id, name = item.name.split("_", 1)
+            size_mb = item.stat().st_size / (1024 * 1024)
+            mime = mimetypes.guess_type(name)[0] or ""
+
+            if mime.startswith("image/"):
+                icon = f'<img src="/file/{file_id}/thumb" class="file-thumb" onerror="this.style.display=\'none\';this.parentElement.innerHTML=📄">'
+            elif mime.startswith("video/"):
+                icon = "🎬"
+            elif mime.startswith("audio/"):
+                icon = "🎵"
+            elif mime.startswith("text/"):
+                icon = "📝"
+            elif "pdf" in mime:
+                icon = "📕"
+            elif "zip" in mime or "rar" in mime or "tar" in mime or "gz" in mime:
+                icon = "📦"
+            else:
+                icon = "📄"
+
+            file_rows += f"""
+            <div class="file-row">
+              <div class="file-info">
+                <div class="file-icon">{icon}</div>
+                <span class="file-name">{name}</span>
+              </div>
+              <div class="file-size">{size_mb:.2f} MB</div>
+              <div class="file-actions">
+                <button class="file-action" onclick="window.open('/file/{file_id}', '_blank')" title="Download">⬇️</button>
+                <button class="file-action delete" onclick="deleteFile('{file_id}', '{name.replace("'", "\\'")}')" title="Delete">🗑️</button>
+              </div>
+            </div>"""
+            files_count += 1
+
+    # Template
+    template_path = STATIC_DIR / "files_template.html"
+    template = template_path.read_text(encoding="utf-8")
+
+    empty_state = ""
+    if not file_rows:
+        empty_state = '<div class="empty-state"><div class="empty-icon">📭</div><p>This folder is empty</p></div>'
+
+    stats = f"<span>📁 {files_count} items</span>"
+
+    html = (
+        template.replace("BREADCRUMB", breadcrumb)
+        .replace("FILE_ROWS", file_rows)
+        .replace("EMPTY_STATE", empty_state)
+        .replace("STAT_ITEMS", stats)
+    )
+
+    return HTMLResponse(html)
+
 
 # --------------------------------------------------
-# UPLOAD API (FAST)
+# DELETE API
+# --------------------------------------------------
+
+
+@app.get("/api/files")
+def api_list_files(
+    page: int = 1,
+    limit: int = 25,
+    q: Optional[str] = None,
+    folder: Optional[str] = None,
+):
+    if page < 1:
+        page = 1
+    if limit < 1 or limit > 100:
+        limit = 25
+    offset = (page - 1) * limit
+    conn = get_db()
+    cur = conn.cursor()
+
+    base_query = "SELECT id, filename, mime, size, uploaded_at, folder FROM files WHERE is_deleted=0"
+    count_query = "SELECT COUNT(*) FROM files WHERE is_deleted=0"
+    params = []
+
+    if folder is not None and folder != "":
+        base_query += " AND folder = ?"
+        count_query += " AND folder = ?"
+        params.append(folder)
+
+    if q:
+        base_query += " AND filename LIKE ?"
+        count_query += " AND filename LIKE ?"
+        params.append("%" + q + "%")
+
+    base_query += " ORDER BY uploaded_at DESC LIMIT ? OFFSET ?"
+    params.extend([limit, offset])
+
+    cur.execute(base_query, params)
+    rows = cur.fetchall()
+
+    cur2 = conn.execute(count_query, params[:-2])
+    total = cur2.fetchone()[0]
+
+    items = []
+    for r in rows:
+        items.append(
+            {
+                "id": r["id"],
+                "filename": r["filename"],
+                "mime": r["mime"],
+                "size": r["size"],
+                "uploaded_at": r["uploaded_at"],
+                "folder": r["folder"] or "",
+                "download_url": "/file/" + r["id"],
+                "thumb_url": "/file/" + r["id"] + "/thumb"
+                if (r["mime"] or "").startswith("image/")
+                else None,
+            }
+        )
+    return {"page": page, "limit": limit, "total": total, "items": items}
+
+
+@app.get("/file/{file_id}/thumb")
+def file_thumb(file_id: str):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT filename, mime, folder FROM files WHERE id=? AND is_deleted=0",
+        (file_id,),
+    )
+    row = cur.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="File not found")
+    mime = row["mime"] or ""
+    if not mime.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Not an image")
+    source_path = UPLOAD_DIR / (file_id + "_" + row["filename"])
+    thumb_dir = UPLOAD_DIR / "thumbs"
+    thumb_dir.mkdir(parents=True, exist_ok=True)
+    thumb_path = thumb_dir / (file_id + ".jpg")
+    if not thumb_path.exists():
+        try:
+            from PIL import Image
+
+            with Image.open(source_path) as im:
+                im.thumbnail((300, 300))
+                if im.mode in ("RGBA", "LA"):
+                    background = Image.new("RGB", im.size, (255, 255, 255))
+                    background.paste(im, mask=im.split()[-1])
+                    background.save(thumb_path, "JPEG", quality=85)
+                else:
+                    im.convert("RGB").save(thumb_path, "JPEG", quality=85)
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail="Thumbnail generation failed: " + str(e)
+            )
+    return FileResponse(thumb_path, media_type="image/jpeg", filename=file_id + ".jpg")
+
+
+@app.delete("/file/{file_id}")
+def delete_file(file_id: str, request: Request):
+    current_folder = request.query_params.get("folder", "") or ""
+
+    # Search in current folder first, then root
+    if current_folder:
+        folder_path = UPLOAD_DIR / current_folder
+        matches = list(folder_path.glob(file_id + "_*"))
+    else:
+        matches = list(UPLOAD_DIR.glob(file_id + "_*"))
+        # Also check subdirectories
+        if not matches:
+            for subdir in UPLOAD_DIR.iterdir():
+                if subdir.is_dir() and subdir.name != "thumbs":
+                    matches = list(subdir.glob(file_id + "_*"))
+                    if matches:
+                        break
+
+    if not matches:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    file_path = matches[0]
+
+    try:
+        os.remove(file_path)
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE files SET is_deleted=1, deleted_at=? WHERE id=?",
+            (int(time.time()), file_id),
+        )
+        conn.commit()
+        return {"message": "File deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Error deleting file: " + str(e))
+
+
+# --------------------------------------------------
+# UPLOAD API (FAST) with folder support
 # --------------------------------------------------
 @app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(file: UploadFile = File(...), folder: str = Form(default="")):
+    print(f"Received upload request - filename: {file.filename}, folder: '{folder}'")
     file_id = str(uuid.uuid4())
     safe_name = file.filename.replace("/", "_").replace("\\", "_")
-    file_path = UPLOAD_DIR / f"{file_id}_{safe_name}"
 
-    BUFFER_SIZE = 1024 * 1024  # 1MB
+    folder = folder.strip() if folder else ""
+
+    if folder:
+        folder_path = UPLOAD_DIR / folder
+        folder_path.mkdir(exist_ok=True)
+        file_path = folder_path / (file_id + "_" + safe_name)
+    else:
+        file_path = UPLOAD_DIR / (file_id + "_" + safe_name)
+
+    BUFFER_SIZE = 1024 * 1024
+    hasher = hashlib.sha256()
+    total = 0
 
     with open(file_path, "wb") as f:
         while True:
@@ -121,19 +548,73 @@ async def upload_file(file: UploadFile = File(...)):
             if not chunk:
                 break
             f.write(chunk)
+            try:
+                hasher.update(chunk)
+            except Exception:
+                pass
+            total += len(chunk)
+
+    checksum = hasher.hexdigest()
+    mime = (
+        file.content_type
+        or mimetypes.guess_type(safe_name)[0]
+        or "application/octet-stream"
+    )
+    uploaded_at = int(time.time())
+
+    try:
+        conn = get_db()
+        conn.execute(
+            "INSERT OR REPLACE INTO files (id, filename, mime, size, uploaded_at, checksum, folder) VALUES (?,?,?,?,?,?,?)",
+            (file_id, safe_name, mime, total, uploaded_at, checksum, folder),
+        )
+
+        # Also ensure folder is tracked
+        if folder:
+            conn.execute(
+                "INSERT OR IGNORE INTO folders (name, created_at) VALUES (?, ?)",
+                (folder, int(time.time())),
+            )
+
+        conn.commit()
+    except Exception as e:
+        print("DB insert error:", e)
+
+    try:
+        if mime.startswith("image/"):
+            from threading import Thread
+
+            thumb_dir = UPLOAD_DIR / "thumbs"
+            thumb_dir.mkdir(parents=True, exist_ok=True)
+            thumb_path = thumb_dir / (file_id + ".jpg")
+            Thread(
+                target=generate_thumbnail, args=(file_path, thumb_path), daemon=True
+            ).start()
+    except Exception as e:
+        print("Thumbnail background start error:", e)
 
     return {
         "filename": safe_name,
-        "download_url": f"/file/{file_id}",
-        "files_url": "/files"
+        "download_url": "/file/" + file_id,
+        "files_url": "/files",
+        "id": file_id,
+        "folder": folder,
     }
+
 
 # --------------------------------------------------
 # DOWNLOAD API
 # --------------------------------------------------
 @app.get("/file/{file_id}")
 def download_file(file_id: str):
-    matches = list(UPLOAD_DIR.glob(f"{file_id}_*"))
+    matches = list(UPLOAD_DIR.glob(file_id + "_*"))
+    if not matches:
+        for subdir in UPLOAD_DIR.iterdir():
+            if subdir.is_dir() and subdir.name != "thumbs":
+                matches = list(subdir.glob(file_id + "_*"))
+                if matches:
+                    break
+
     if not matches:
         raise HTTPException(status_code=404, detail="File not found")
 
@@ -141,7 +622,192 @@ def download_file(file_id: str):
     original_name = file_path.name.split("_", 1)[1]
 
     return FileResponse(
-        file_path,
-        filename=original_name,
-        media_type="application/octet-stream"
+        file_path, filename=original_name, media_type="application/octet-stream"
     )
+
+
+# --------------------------------------------------
+# SUGGESTIONS API
+# --------------------------------------------------
+@app.get("/api/suggestions")
+def get_suggestions(sort: str = "newest", status: Optional[str] = None):
+    conn = get_db()
+    cur = conn.cursor()
+
+    query = "SELECT id, title, description, author, upvotes, status, created_at FROM suggestions WHERE 1=1"
+    params = []
+
+    if status:
+        query += " AND status = ?"
+        params.append(status)
+
+    if sort == "popular":
+        query += " ORDER BY upvotes DESC, created_at DESC"
+    else:
+        query += " ORDER BY created_at DESC"
+
+    cur.execute(query, params)
+    rows = cur.fetchall()
+
+    suggestions = []
+    for r in rows:
+        suggestions.append(
+            {
+                "id": r[0],
+                "title": r[1],
+                "description": r[2],
+                "author": r[3],
+                "upvotes": r[4],
+                "status": r[5],
+                "created_at": r[6],
+                "created_date": time.strftime("%b %d, %Y", time.localtime(r[6]))
+                if r[6]
+                else "",
+            }
+        )
+
+    return {"suggestions": suggestions, "total": len(suggestions)}
+
+
+@app.post("/api/suggestions")
+def create_suggestion(request: Request, suggestion: dict):
+    title = suggestion.get("title", "").strip()
+    description = suggestion.get("description", "").strip()
+    author = suggestion.get("author", "").strip() or "Anonymous"
+
+    if not title:
+        raise HTTPException(status_code=400, detail="Title is required")
+
+    if len(title) > 200:
+        raise HTTPException(status_code=400, detail="Title too long (max 200 chars)")
+
+    if len(description) > 2000:
+        raise HTTPException(
+            status_code=400, detail="Description too long (max 2000 chars)"
+        )
+
+    suggestion_id = str(uuid.uuid4())
+    ip_address = request.client.host if request.client else None
+
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO suggestions (id, title, description, author, upvotes, status, created_at, ip_address) VALUES (?, ?, ?, ?, 0, 'pending', ?, ?)",
+        (suggestion_id, title, description, author, int(time.time()), ip_address),
+    )
+    conn.commit()
+
+    return {
+        "id": suggestion_id,
+        "message": "Suggestion submitted successfully",
+        "title": title,
+    }
+
+
+@app.post("/api/suggestions/{suggestion_id}/upvote")
+def upvote_suggestion(suggestion_id: str, request: Request):
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("SELECT upvotes FROM suggestions WHERE id = ?", (suggestion_id,))
+    row = cur.fetchone()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Suggestion not found")
+
+    new_upvotes = row[0] + 1
+    conn.execute(
+        "UPDATE suggestions SET upvotes = ? WHERE id = ?", (new_upvotes, suggestion_id)
+    )
+    conn.commit()
+
+    return {"upvotes": new_upvotes}
+
+
+@app.put("/api/suggestions/{suggestion_id}/status")
+def update_suggestion_status(suggestion_id: str, data: dict):
+    status = data.get("status", "").strip()
+    if status not in ["pending", "implemented", "rejected"]:
+        raise HTTPException(status_code=400, detail="Invalid status")
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE suggestions SET status = ? WHERE id = ?", (status, suggestion_id)
+    )
+    if cur.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Suggestion not found")
+    conn.commit()
+
+    return {"message": "Status updated", "status": status}
+
+
+@app.delete("/api/suggestions/{suggestion_id}")
+def delete_suggestion(suggestion_id: str):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM suggestions WHERE id = ?", (suggestion_id,))
+    if cur.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Suggestion not found")
+    conn.commit()
+    return {"message": "Suggestion deleted"}
+
+
+# --------------------------------------------------
+# SUGGESTIONS PAGE
+# --------------------------------------------------
+@app.get("/suggest", response_class=HTMLResponse)
+def suggestions_page():
+    suggest_html = STATIC_DIR / "suggestions.html"
+    if suggest_html.exists():
+        return suggest_html.read_text(encoding="utf-8")
+    return HTMLResponse("<h1>Suggestions page not found</h1>", status_code=404)
+
+
+def generate_thumbnail(source_path: Path, thumb_path: Path):
+    try:
+        from PIL import Image
+
+        with Image.open(source_path) as im:
+            im.thumbnail((300, 300))
+            if im.mode in ("RGBA", "LA"):
+                background = Image.new("RGB", im.size, (255, 255, 255))
+                background.paste(im, mask=im.split()[-1])
+                background.save(thumb_path, "JPEG", quality=85)
+            else:
+                im.convert("RGB").save(thumb_path, "JPEG", quality=85)
+    except Exception as e:
+        print("Thumbnail generation failed for " + str(source_path) + ": " + str(e))
+
+
+def background_thumbnail_worker(poll_interval: int = 30):
+    thumb_dir = UPLOAD_DIR / "thumbs"
+    thumb_dir.mkdir(parents=True, exist_ok=True)
+    while True:
+        try:
+            for f in UPLOAD_DIR.iterdir():
+                if f.is_dir() or f.name == DB_PATH.name:
+                    continue
+                if "_" not in f.name:
+                    continue
+                file_id, name = f.name.split("_", 1)
+                thumb = thumb_dir / (file_id + ".jpg")
+                if thumb.exists():
+                    continue
+                mime = mimetypes.guess_type(name)[0] or ""
+                if not mime.startswith("image/"):
+                    continue
+                source = UPLOAD_DIR / (file_id + "_" + name)
+                if not source.exists():
+                    continue
+                generate_thumbnail(source, thumb)
+        except Exception as e:
+            print("Background thumbnail worker error:", e)
+        time.sleep(poll_interval)
+
+
+@app.on_event("startup")
+def start_background_workers():
+    from threading import Thread
+
+    t = Thread(target=background_thumbnail_worker, daemon=True)
+    t.start()
