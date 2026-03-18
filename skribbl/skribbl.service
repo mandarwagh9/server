@@ -1,0 +1,15 @@
+[Unit]
+Description=Skribbl Game Server
+After=network.target
+
+[Service]
+Type=simple
+User=mandar
+WorkingDirectory=/home/mandar/skribbl
+ExecStart=/home/linuxbrew/.linuxbrew/bin/node /home/mandar/skribbl/server.js
+Restart=always
+RestartSec=5
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
