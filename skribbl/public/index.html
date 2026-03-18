@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skribbl - writesomething.fun</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+      background: #0a0a0a;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      width: 100%;
+      max-width: 420px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+    .header { text-align: center; }
+    .logo {
+      font-size: 3.5rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+    .tagline {
+      color: #555;
+      font-size: 0.9rem;
+    }
+    .card {
+      background: #111;
+      border: 1px solid #1a1a1a;
+      border-radius: 16px;
+      padding: 32px;
+    }
+    .card h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #888;
+    }
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .input-group label {
+      font-size: 0.8rem;
+      color: #555;
+    }
+    .input-group input {
+      background: #0a0a0a;
+      border: 1px solid #222;
+      color: #fff;
+      padding: 14px 16px;
+      font-size: 1rem;
+      border-radius: 10px;
+      font-family: inherit;
+    }
+    .input-group input:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+    .btn {
+      width: 100%;
+      padding: 14px;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+    .btn-primary {
+      background: #3b82f6;
+      color: #fff;
+    }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-primary:disabled { background: #222; color: #444; cursor: not-allowed; }
+    .btn-secondary {
+      background: #1a1a1a;
+      color: #888;
+      border: 1px solid #222;
+    }
+    .btn-secondary:hover { background: #222; color: #fff; }
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0;
+      color: #333;
+      font-size: 0.8rem;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #1a1a1a;
+    }
+    .error {
+      color: #ef4444;
+      font-size: 0.85rem;
+      text-align: center;
+      margin-top: 12px;
+      display: none;
+    }
+    .footer {
+      text-align: center;
+      color: #333;
+      font-size: 0.75rem;
+      margin-top: 16px;
+    }
+    .footer a { color: #555; text-decoration: none; }
+    .footer a:hover { color: #888; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">skribbl</div>
+      <div class="tagline">draw, guess, repeat.</div>
+    </div>
+
+    <div class="card">
+      <h2>create a room</h2>
+      <div class="input-group">
+        <label>your name</label>
+        <input type="text" id="nickname" placeholder="anonymous" maxlength="20">
+      </div>
+      <button class="btn btn-primary" id="createBtn" onclick="createRoom()">create room</button>
+      <div class="error" id="createError"></div>
+    </div>
+
+    <div class="divider">or join existing</div>
+
+    <div class="card">
+      <h2>join a room</h2>
+      <div class="input-group">
+        <label>room code</label>
+        <input type="text" id="roomCode" placeholder="ABCD" maxlength="4" style="text-transform:uppercase; text-align:center; letter-spacing:0.3em; font-size:1.4rem;" oninput="this.value=this.value.toUpperCase()">
+      </div>
+      <div class="input-group">
+        <label>your name</label>
+        <input type="text" id="joinNickname" placeholder="anonymous" maxlength="20">
+      </div>
+      <button class="btn btn-secondary" id="joinBtn" onclick="joinRoom()">join room</button>
+      <div class="error" id="joinError"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <a href="https://dump.writesomething.fun">writesomething.fun</a>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    let nickname = '';
+
+    function getNickname(prefix) {
+      const input = document.getElementById(prefix === 'create' ? 'nickname' : 'joinNickname');
+      return input.value.trim() || 'Anonymous';
+    }
+
+    function createRoom() {
+      nickname = getNickname('create');
+      const btn = document.getElementById('createBtn');
+      btn.disabled = true;
+      btn.textContent = 'creating...';
+
+      socket.emit('create-room', { nickname });
+    }
+
+    function joinRoom() {
+      nickname = getNickname('join');
+      const code = document.getElementById('roomCode').value.trim().toUpperCase();
+      if (!code) {
+        showError('joinError', 'enter a room code');
+        return;
+      }
+      const btn = document.getElementById('joinBtn');
+      btn.disabled = true;
+      btn.textContent = 'joining...';
+
+      socket.emit('join-room', { code, nickname });
+    }
+
+    socket.on('room-created', (data) => {
+      sessionStorage.setItem('nickname', nickname);
+      sessionStorage.setItem('roomCode', data.code);
+      window.location.href = `/lobby.html?code=${data.code}`;
+    });
+
+    socket.on('room-joined', (data) => {
+      sessionStorage.setItem('nickname', nickname);
+      sessionStorage.setItem('roomCode', data.code);
+      window.location.href = `/lobby.html?code=${data.code}`;
+    });
+
+    socket.on('error', (data) => {
+      const btn = document.getElementById('createBtn');
+      btn.disabled = false;
+      btn.textContent = 'create room';
+      const btn2 = document.getElementById('joinBtn');
+      btn2.disabled = false;
+      btn2.textContent = 'join room';
+      showError('joinError', data.message);
+    });
+
+    function showError(elId, msg) {
+      const el = document.getElementById(elId);
+      el.textContent = msg;
+      el.style.display = 'block';
+      setTimeout(() => { el.style.display = 'none'; }, 4000);
+    }
+  </script>
+</body>
+</html>

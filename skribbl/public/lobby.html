@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lobby - Skribbl</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+      background: #0a0a0a;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .header {
+      background: #0f0f0f;
+      border-bottom: 1px solid #1a1a1a;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .room-code {
+      font-size: 1.6rem;
+      font-weight: 700;
+      font-family: 'Fira Code', 'Cascadia Code', monospace;
+      letter-spacing: 0.2em;
+      color: #3b82f6;
+    }
+    .leave-btn {
+      background: #111;
+      border: 1px solid #222;
+      color: #666;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-family: inherit;
+    }
+    .leave-btn:hover { background: #1a1a1a; color: #fff; }
+    .main {
+      flex: 1;
+      display: flex;
+      gap: 24px;
+      padding: 24px;
+      max-width: 900px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .players-section {
+      flex: 1;
+    }
+    .section-title {
+      font-size: 0.8rem;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 16px;
+    }
+    .player-list {
+      background: #111;
+      border: 1px solid #1a1a1a;
+      border-radius: 12px;
+      padding: 8px;
+      min-height: 200px;
+    }
+    .player {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 8px;
+    }
+    .player.host { background: #1a1a2e; border: 1px solid #2a2a4e; }
+    .player-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #1a1a1a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+    }
+    .player-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .player-badge {
+      font-size: 0.65rem;
+      background: #3b82f6;
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 6px;
+    }
+    .player-count {
+      color: #444;
+      font-size: 0.8rem;
+      margin-top: 8px;
+      text-align: center;
+    }
+    .chat-section {
+      width: 300px;
+      display: flex;
+      flex-direction: column;
+      background: #111;
+      border: 1px solid #1a1a1a;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .chat-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid #1a1a1a;
+      font-size: 0.8rem;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .chat-messages {
+      flex: 1;
+      padding: 12px;
+      overflow-y: auto;
+      min-height: 200px;
+      max-height: 300px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .chat-messages::-webkit-scrollbar { width: 4px; }
+    .chat-messages::-webkit-scrollbar-thumb { background: #222; border-radius: 2px; }
+    .chat-msg {
+      font-size: 0.85rem;
+      color: #888;
+      line-height: 1.4;
+    }
+    .chat-msg .nick { color: #3b82f6; font-weight: 600; }
+    .chat-input-area {
+      border-top: 1px solid #1a1a1a;
+      padding: 10px;
+    }
+    .chat-input-area input {
+      width: 100%;
+      background: #0a0a0a;
+      border: 1px solid #222;
+      color: #fff;
+      padding: 10px 12px;
+      font-size: 0.85rem;
+      border-radius: 8px;
+      font-family: inherit;
+    }
+    .chat-input-area input:focus { outline: none; border-color: #3b82f6; }
+    .footer {
+      padding: 24px;
+      display: flex;
+      justify-content: center;
+    }
+    .start-btn {
+      background: #22c55e;
+      color: #fff;
+      border: none;
+      padding: 16px 48px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      border-radius: 12px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s;
+    }
+    .start-btn:hover { background: #16a34a; }
+    .start-btn:disabled { background: #222; color: #444; cursor: not-allowed; }
+    .waiting-text {
+      text-align: center;
+      padding: 20px;
+      color: #444;
+      font-size: 0.9rem;
+    }
+    .error-msg {
+      text-align: center;
+      color: #ef4444;
+      font-size: 0.85rem;
+      margin-top: 12px;
+      display: none;
+    }
+    @media (max-width: 700px) {
+      .main { flex-direction: column; }
+      .chat-section { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="room-code" id="roomCode">----</div>
+    <button class="leave-btn" onclick="leaveRoom()">leave</button>
+  </div>
+
+  <div class="main">
+    <div class="players-section">
+      <div class="section-title">players</div>
+      <div class="player-list" id="playerList">
+        <div class="waiting-text">waiting for players...</div>
+      </div>
+      <div class="player-count" id="playerCount"></div>
+      <div class="error-msg" id="errorMsg"></div>
+    </div>
+
+    <div class="chat-section">
+      <div class="chat-header">chat</div>
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-input-area">
+        <input type="text" id="chatInput" placeholder="say something..." maxlength="200" onkeydown="if(event.key==='Enter')sendChat()">
+      </div>
+    </div>
+  </div>
+
+  <div class="footer" id="footer">
+    <button class="start-btn" id="startBtn" onclick="startGame()" disabled>waiting...</button>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const code = new URLSearchParams(window.location.search).get('code');
+    const nickname = sessionStorage.getItem('nickname') || 'Anonymous';
+
+    if (!code || !nickname) {
+      window.location.href = '/index.html';
+    }
+
+    document.getElementById('roomCode').textContent = code;
+
+    socket.emit('join-room', { code, nickname });
+
+    socket.on('player-list', ({ players }) => {
+      renderPlayers(players);
+    });
+
+    socket.on('new-host', ({ hostId }) => {
+      const isHost = hostId === socket.id;
+      updateStartButton(isHost, players.length);
+    });
+
+    socket.on('game-start', () => {
+      window.location.href = `/game.html?code=${code}`;
+    });
+
+    socket.on('error', ({ message }) => {
+      const el = document.getElementById('errorMsg');
+      el.textContent = message;
+      el.style.display = 'block';
+      setTimeout(() => { el.style.display = 'none'; }, 5000);
+    });
+
+    let players = [];
+
+    function renderPlayers(list) {
+      players = list;
+      const el = document.getElementById('playerList');
+      const icons = ['bear', 'cat', 'dog', 'fox', 'owl', 'panda', 'rabbit', 'wolf'];
+
+      if (list.length === 0) {
+        el.innerHTML = '<div class="waiting-text">waiting for players...</div>';
+        return;
+      }
+
+      el.innerHTML = list.map((p, i) => `
+        <div class="player${p.isHost ? ' host' : ''}">
+          <div class="player-icon">${icons[i % icons.length]}</div>
+          <div class="player-name">${escapeHtml(p.nickname)} ${p.isHost ? '<span class="player-badge">host</span>' : ''}</div>
+        </div>
+      `).join('');
+
+      const hostPlayer = list.find(p => p.isHost);
+      const isHost = hostPlayer && hostPlayer.id === socket.id;
+      document.getElementById('playerCount').textContent = `${list.length} / ${12} players`;
+
+      if (list.length >= 2) {
+        updateStartButton(isHost, list.length);
+      } else {
+        updateStartButton(false, list.length);
+      }
+    }
+
+    function updateStartButton(isHost, count) {
+      const btn = document.getElementById('startBtn');
+      if (isHost && count >= 2) {
+        btn.disabled = false;
+        btn.textContent = 'start game';
+      } else if (isHost) {
+        btn.disabled = true;
+        btn.textContent = 'need 2+ players';
+      } else {
+        btn.disabled = true;
+        btn.textContent = 'waiting for host...';
+      }
+    }
+
+    function startGame() {
+      socket.emit('start-game');
+    }
+
+    function leaveRoom() {
+      window.location.href = '/index.html';
+    }
+
+    function sendChat() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return;
+      socket.emit('chat-message', { text });
+      input.value = '';
+    }
+
+    socket.on('chat-message', ({ nickname: nick, text }) => {
+      const el = document.getElementById('chatMessages');
+      const div = document.createElement('div');
+      div.className = 'chat-msg';
+      div.innerHTML = `<span class="nick">${escapeHtml(nick)}</span>: ${escapeHtml(text)}`;
+      el.appendChild(div);
+      el.scrollTop = el.scrollHeight;
+    });
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>
