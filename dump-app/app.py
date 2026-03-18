@@ -1,4 +1,13 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Request, Form
+from fastapi import (
+    FastAPI,
+    UploadFile,
+    File,
+    HTTPException,
+    Request,
+    Form,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
@@ -8,7 +17,11 @@ import sqlite3
 import hashlib
 import time
 import mimetypes
-from typing import Optional
+import random
+import string
+import asyncio
+from typing import Optional, Dict, Set
+from collections import defaultdict
 
 # --------------------------------------------------
 # Paths
@@ -1158,3 +1171,255 @@ def start_background_workers():
 
     t = Thread(target=background_thumbnail_worker, daemon=True)
     t.start()
+
+
+# --------------------------------------------------
+# TINY CHAT ROOMS
+# --------------------------------------------------
+ADJECTIVES = [
+    "Swift",
+    "Lonely",
+    "Cosmic",
+    "Silent",
+    "Fierce",
+    "Gentle",
+    "Mystic",
+    "Wild",
+    "Ancient",
+    "Bold",
+    "Calm",
+    "Dark",
+    "Electric",
+    "Frozen",
+    "Golden",
+    "Hidden",
+    "Infinite",
+    "Jolly",
+    "Keen",
+    "Lunar",
+    "Mighty",
+    "Neon",
+    "Old",
+    "Purple",
+    "Quiet",
+    "Rapid",
+    "Secret",
+    "Tiny",
+    "Ultra",
+    "Vivid",
+    "Wandering",
+    "Xenial",
+]
+ANIMALS = [
+    "Penguin",
+    "Panda",
+    "Tiger",
+    "Eagle",
+    "Fox",
+    "Wolf",
+    "Bear",
+    "Owl",
+    "Hawk",
+    "Raven",
+    "Falcon",
+    "Lynx",
+    "Otter",
+    "Badger",
+    "Crane",
+    "Dolphin",
+    "Elk",
+    "Finch",
+    "Gecko",
+    "Heron",
+    "Ibis",
+    "Jaguar",
+    "Koala",
+    "Lemur",
+    "Mink",
+    "Newt",
+    "Orca",
+    "Parrot",
+    "Quail",
+    "Robin",
+    "Salamander",
+    "Tapir",
+]
+MAX_ROOM_USERS = 20
+MAX_MESSAGES = 100
+
+
+class Room:
+    def __init__(self, room_id: str, topic: str = "", password: str = ""):
+        self.id = room_id
+        self.topic = topic
+        self.password = password
+        self.connections: Dict[str, WebSocket] = {}
+        self.messages: list = []
+        self.created_at = int(time.time())
+
+    @property
+    def user_count(self) -> int:
+        return len(self.connections)
+
+
+rooms: Dict[str, Room] = {}
+
+
+def generate_nickname() -> str:
+    adj = random.choice(ADJECTIVES)
+    animal = random.choice(ANIMALS)
+    return f"{adj} {animal}"
+
+
+def generate_room_id() -> str:
+    chars = string.ascii_lowercase + string.digits
+    return "".join(random.choices(chars, k=6))
+
+
+@app.get("/chat", response_class=HTMLResponse)
+def chat_lobby():
+    chat_html = STATIC_DIR / "chat.html"
+    if chat_html.exists():
+        return chat_html.read_text(encoding="utf-8")
+    return HTMLResponse("<h1>Chat page not found</h1>", status_code=404)
+
+
+@app.get("/chat/{room_id}", response_class=HTMLResponse)
+def chat_room(room_id: str):
+    chat_html = STATIC_DIR / "chat.html"
+    if chat_html.exists():
+        return chat_html.read_text(encoding="utf-8")
+    return HTMLResponse("<h1>Chat page not found</h1>", status_code=404)
+
+
+@app.get("/api/chat/room/{room_id}")
+def get_room_info(room_id: str):
+    if room_id not in rooms:
+        return {"exists": False, "user_count": 0, "topic": "", "full": False}
+    room = rooms[room_id]
+    return {
+        "exists": True,
+        "user_count": room.user_count,
+        "topic": room.topic,
+        "full": room.user_count >= MAX_ROOM_USERS,
+    }
+
+
+@app.websocket("/ws/{room_id}")
+async def websocket_chat(websocket: WebSocket, room_id: str):
+    room_id = room_id.strip().lower()
+
+    if room_id not in rooms:
+        rooms[room_id] = Room(room_id)
+
+    room = rooms[room_id]
+
+    if room.user_count >= MAX_ROOM_USERS:
+        await websocket.close(code=4001, reason="Room is full")
+        return
+
+    nickname = generate_nickname()
+    client_id = str(uuid.uuid4())
+
+    room.connections[client_id] = websocket
+
+    await websocket.accept()
+
+    join_msg = {
+        "type": "system",
+        "text": f"{nickname} joined the room",
+        "time": int(time.time()),
+        "nickname": nickname,
+    }
+    room.messages.append(join_msg)
+    if len(room.messages) > MAX_MESSAGES:
+        room.messages = room.messages[-MAX_MESSAGES:]
+
+    for cid, conn in list(room.connections.items()):
+        if cid != client_id:
+            try:
+                await conn.send_json(join_msg)
+            except Exception:
+                pass
+
+    await websocket.send_json(
+        {
+            "type": "init",
+            "nickname": nickname,
+            "client_id": client_id,
+            "messages": room.messages[-50:],
+            "user_count": room.user_count,
+        }
+    )
+
+    try:
+        while True:
+            data = await websocket.receive_json()
+            msg_type = data.get("type", "message")
+
+            if msg_type == "message":
+                text = data.get("text", "").strip()
+                if not text or len(text) > 1000:
+                    continue
+
+                msg = {
+                    "type": "message",
+                    "text": text,
+                    "nickname": nickname,
+                    "client_id": client_id,
+                    "time": int(time.time()),
+                }
+                room.messages.append(msg)
+                if len(room.messages) > MAX_MESSAGES:
+                    room.messages = room.messages[-MAX_MESSAGES:]
+
+                for cid, conn in list(room.connections.items()):
+                    try:
+                        await conn.send_json(msg)
+                    except Exception:
+                        pass
+
+            elif msg_type == "ping":
+                await websocket.send_json({"type": "pong"})
+
+            elif msg_type == "set_nickname":
+                new_name = data.get("name", "").strip()[:30]
+                if new_name:
+                    old_name = nickname
+                    nickname = new_name
+                    update_msg = {
+                        "type": "system",
+                        "text": f"{old_name} is now {nickname}",
+                        "time": int(time.time()),
+                        "nickname": nickname,
+                    }
+                    room.messages.append(update_msg)
+                    for cid, conn in list(room.connections.items()):
+                        try:
+                            await conn.send_json(update_msg)
+                        except Exception:
+                            pass
+
+    except WebSocketDisconnect:
+        pass
+    finally:
+        if client_id in room.connections:
+            del room.connections[client_id]
+
+        leave_msg = {
+            "type": "system",
+            "text": f"{nickname} left the room",
+            "time": int(time.time()),
+            "nickname": nickname,
+        }
+        for cid, conn in list(room.connections.items()):
+            try:
+                await conn.send_json(leave_msg)
+                await conn.send_json(
+                    {"type": "user_count", "user_count": room.user_count}
+                )
+            except Exception:
+                pass
+
+        if room.user_count == 0:
+            del rooms[room_id]
