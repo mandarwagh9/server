@@ -195,17 +195,27 @@
       font-size: 0.8rem;
       color: #555;
       flex-wrap: wrap;
+      align-items: center;
     }
-    .status-badge {
-      padding: 4px 10px;
+    .suggestion-meta span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .status-select {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: #888;
+      padding: 4px 8px;
       border-radius: 12px;
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       font-weight: 600;
       text-transform: uppercase;
+      cursor: pointer;
     }
-    .status-pending { background: #422006; color: #f59e0b; }
-    .status-implemented { background: #052e16; color: #22c55e; }
-    .status-rejected { background: #2a0a0a; color: #ef4444; }
+    .status-select:hover { border-color: #555; }
+    .status-select option { background: #111; }
+    .status-badge { display: none; }
     .empty-state {
       text-align: center;
       padding: 60px 20px;
@@ -388,7 +398,11 @@
             <div class="suggestion-meta">
               <span>By ${escapeHtml(s.author || 'Anonymous')}</span>
               <span>${s.created_date || ''}</span>
-              <span class="status-badge status-${s.status}">${s.status}</span>
+              <select class="status-select" onchange="updateStatus('${s.id}', this.value)">
+                <option value="pending" ${s.status === 'pending' ? 'selected' : ''}>Pending</option>
+                <option value="implemented" ${s.status === 'implemented' ? 'selected' : ''}>Implemented</option>
+                <option value="rejected" ${s.status === 'rejected' ? 'selected' : ''}>Rejected</option>
+              </select>
             </div>
           </div>
         </div>
@@ -407,6 +421,20 @@
         }
       } catch (err) {
         showToast('Failed to upvote', 'error');
+      }
+    }
+
+    async function updateStatus(id, status) {
+      try {
+        await fetch(`${API_BASE}/api/suggestions/${id}/status`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        });
+        showToast(`Marked as ${status} ✓`, 'success');
+        loadSuggestions();
+      } catch (err) {
+        showToast('Failed to update status', 'error');
       }
     }
 
