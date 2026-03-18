@@ -23,129 +23,44 @@
       justify-content: space-between;
       align-items: center;
       flex-shrink: 0;
+      gap: 12px;
     }
-    .header-left { display: flex; align-items: center; gap: 16px; }
     .room-code { font-size: 0.8rem; color: #555; font-family: monospace; }
-    .timer-bar {
-      width: 200px;
-      height: 8px;
-      background: #1a1a1a;
-      border-radius: 4px;
-      overflow: hidden;
-    }
-    .timer-fill {
-      height: 100%;
-      background: #22c55e;
-      transition: width 1s linear, background 0.5s;
-      border-radius: 4px;
-    }
+    .timer-bar { width: 180px; height: 8px; background: #1a1a1a; border-radius: 4px; overflow: hidden; flex-shrink: 0; }
+    .timer-fill { height: 100%; background: #22c55e; transition: width 1s linear, background 0.5s; border-radius: 4px; }
     .timer-fill.warning { background: #f59e0b; }
     .timer-fill.danger { background: #ef4444; }
-    .timer-text {
-      font-size: 0.85rem;
-      font-weight: 700;
-      font-family: 'Fira Code', monospace;
-      min-width: 40px;
-      text-align: right;
-    }
-    .header-center {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-    }
-    .round-info { font-size: 0.75rem; color: #555; }
-    .word-display {
-      font-size: 1.2rem;
-      font-weight: 700;
-      letter-spacing: 0.15em;
-      font-family: 'Fira Code', monospace;
-      color: #fff;
-    }
+    .timer-text { font-size: 0.85rem; font-weight: 700; font-family: monospace; min-width: 36px; text-align: right; }
+    .header-center { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .round-info { font-size: 0.7rem; color: #444; }
+    .word-display { font-size: 1.1rem; font-weight: 700; letter-spacing: 0.12em; font-family: monospace; }
     .word-display.hidden { color: #333; }
-    .header-right { display: flex; align-items: center; gap: 8px; }
-    .score-btn {
-      background: #111;
-      border: 1px solid #222;
-      color: #666;
-      padding: 6px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 0.8rem;
-      font-family: inherit;
+    .header-right { display: flex; gap: 8px; }
+    .btn-small {
+      background: #111; border: 1px solid #222; color: #666;
+      padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-family: inherit;
     }
-    .score-btn:hover { background: #1a1a1a; color: #fff; }
-    .exit-btn {
-      background: #111;
-      border: 1px solid #222;
-      color: #666;
-      padding: 6px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 0.8rem;
-      font-family: inherit;
-    }
-    .exit-btn:hover { background: #1a1a1a; color: #fff; }
+    .btn-small:hover { background: #1a1a1a; color: #fff; }
 
-    .game-area {
-      flex: 1;
-      display: flex;
-      overflow: hidden;
-    }
-    .canvas-wrapper {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 12px;
-      gap: 12px;
-      min-width: 0;
-    }
+    .game-area { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+    .canvas-wrapper { flex: 1; display: flex; flex-direction: column; padding: 10px; gap: 10px; min-width: 0; }
     .toolbar {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      flex-wrap: wrap;
-      background: #111;
-      border: 1px solid #1a1a1a;
-      padding: 8px 12px;
-      border-radius: 10px;
-      flex-shrink: 0;
+      display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+      background: #111; border: 1px solid #1a1a1a; padding: 6px 10px;
+      border-radius: 8px; flex-shrink: 0;
     }
     .toolbar.hidden { display: none; }
-    .color-palette {
-      display: flex;
-      gap: 4px;
-      flex-wrap: wrap;
-    }
-    .color-btn {
-      width: 24px;
-      height: 24px;
-      border-radius: 4px;
-      border: 2px solid transparent;
-      cursor: pointer;
-    }
+    .color-palette { display: flex; gap: 3px; flex-wrap: wrap; }
+    .color-btn { width: 22px; height: 22px; border-radius: 4px; border: 2px solid transparent; cursor: pointer; }
     .color-btn.active { border-color: #fff; }
     .size-btn {
-      background: #1a1a1a;
-      border: 1px solid #222;
-      color: #888;
-      padding: 4px 8px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.75rem;
-      font-family: inherit;
+      background: #1a1a1a; border: 1px solid #222; color: #888;
+      padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; font-family: inherit;
     }
     .size-btn.active { background: #2a2a2a; color: #fff; border-color: #444; }
     .tool-btn {
-      background: #1a1a1a;
-      border: 1px solid #222;
-      color: #888;
-      padding: 4px 10px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.75rem;
-      font-family: inherit;
-      transition: all 0.15s;
+      background: #1a1a1a; border: 1px solid #222; color: #888;
+      padding: 3px 10px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; font-family: inherit; transition: all 0.15s;
     }
     .tool-btn:hover { background: #222; color: #fff; }
     .tool-btn.active { background: #2a2a2a; color: #fff; border-color: #444; }
@@ -154,204 +69,91 @@
     .tool-btn.skip { background: #ef4444; border-color: #ef4444; color: #fff; }
     .tool-btn.skip:hover { background: #dc2626; }
 
-    .canvas-container {
-      flex: 1;
-      background: #fff;
-      border-radius: 8px;
-      overflow: hidden;
-      position: relative;
-      min-height: 0;
-    }
-    #canvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-      cursor: crosshair;
-    }
+    .canvas-container { flex: 1; background: #fff; border-radius: 8px; overflow: hidden; position: relative; min-height: 0; }
+    #canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
 
-    .sidebar {
-      width: 280px;
-      display: flex;
-      flex-direction: column;
-      background: #111;
-      border-left: 1px solid #1a1a1a;
-      flex-shrink: 0;
-    }
-    .players-panel {
-      padding: 12px;
-      border-bottom: 1px solid #1a1a1a;
-    }
-    .panel-title {
-      font-size: 0.7rem;
-      color: #444;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      margin-bottom: 10px;
-    }
-    .mini-player {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 0;
-      font-size: 0.8rem;
-    }
-    .mini-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #333;
-    }
+    .sidebar { width: 260px; display: flex; flex-direction: column; background: #111; border-left: 1px solid #1a1a1a; flex-shrink: 0; overflow: hidden; }
+    .players-panel { padding: 10px; border-bottom: 1px solid #1a1a1a; flex-shrink: 0; }
+    .panel-title { font-size: 0.65rem; color: #333; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+    .mini-player { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 0.8rem; }
+    .mini-dot { width: 7px; height: 7px; border-radius: 50%; background: #333; flex-shrink: 0; }
     .mini-dot.drawing { background: #3b82f6; }
     .mini-dot.guessed { background: #22c55e; }
-    .mini-name { flex: 1; color: #888; }
-    .mini-score { color: #555; font-size: 0.75rem; }
+    .mini-name { flex: 1; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mini-score { color: #555; font-size: 0.7rem; flex-shrink: 0; }
     .mini-player.you .mini-name { color: #fff; font-weight: 600; }
+    .mini-player.drawer .mini-dot { background: #3b82f6; }
+    .mini-player.drawer .mini-name { color: #3b82f6; }
 
-    .chat-panel {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    .chat-header {
-      padding: 10px 12px;
-      border-bottom: 1px solid #1a1a1a;
-      font-size: 0.7rem;
-      color: #444;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-    }
-    .chat-messages {
-      flex: 1;
-      padding: 10px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
+    .chat-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .chat-header { padding: 8px 10px; border-bottom: 1px solid #1a1a1a; font-size: 0.65rem; color: #333; text-transform: uppercase; letter-spacing: 0.1em; flex-shrink: 0; }
+    .chat-messages { flex: 1; padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
     .chat-messages::-webkit-scrollbar { width: 3px; }
     .chat-messages::-webkit-scrollbar-thumb { background: #222; border-radius: 2px; }
-    .chat-msg {
-      font-size: 0.8rem;
-      color: #666;
-      line-height: 1.4;
-      padding: 2px 0;
-    }
+    .chat-msg { font-size: 0.78rem; color: #666; line-height: 1.4; padding: 1px 0; word-break: break-word; }
     .chat-msg.guess { color: #888; font-style: italic; }
-    .chat-msg.system { color: #444; font-style: italic; text-align: center; }
+    .chat-msg.system { color: #444; font-style: italic; text-align: center; font-size: 0.72rem; }
     .chat-msg.correct { color: #22c55e; font-weight: 600; }
     .chat-msg .nick { font-weight: 600; }
-    .chat-input-area {
-      border-top: 1px solid #1a1a1a;
-      padding: 8px;
-    }
+    .chat-input-area { border-top: 1px solid #1a1a1a; padding: 8px; flex-shrink: 0; }
     .chat-input-area input {
-      width: 100%;
-      background: #0a0a0a;
-      border: 1px solid #222;
-      color: #fff;
-      padding: 10px 12px;
-      font-size: 0.85rem;
-      border-radius: 8px;
-      font-family: inherit;
+      width: 100%; background: #0a0a0a; border: 1px solid #222; color: #fff;
+      padding: 8px 10px; font-size: 0.82rem; border-radius: 6px; font-family: inherit;
     }
     .chat-input-area input:focus { outline: none; border-color: #3b82f6; }
-    .chat-input-area input:disabled { opacity: 0.5; }
     .chat-input-area.drawer input { opacity: 0.3; cursor: not-allowed; }
+    .chat-input-area.drawer input:disabled { pointer-events: none; }
 
     .overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.85);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 100;
-      padding: 20px;
+      position: fixed; inset: 0; background: rgba(0,0,0,0.88);
+      display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px;
     }
     .overlay.visible { display: flex; }
     .overlay-content {
-      background: #111;
-      border: 1px solid #222;
-      border-radius: 16px;
-      padding: 40px;
-      text-align: center;
-      max-width: 500px;
-      width: 100%;
+      background: #111; border: 1px solid #222; border-radius: 16px;
+      padding: 36px; text-align: center; max-width: 460px; width: 100%;
     }
-    .overlay-title {
-      font-size: 1.8rem;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-    .overlay-word {
-      font-size: 2rem;
-      font-weight: 800;
-      color: #3b82f6;
-      letter-spacing: 0.1em;
-      margin-bottom: 24px;
-      font-family: 'Fira Code', monospace;
-    }
-    .leaderboard {
-      text-align: left;
-      margin-bottom: 24px;
-    }
-    .leader-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 0;
-      border-bottom: 1px solid #1a1a1a;
-    }
+    .overlay-title { font-size: 1.6rem; font-weight: 700; margin-bottom: 8px; }
+    .overlay-word { font-size: 1.8rem; font-weight: 800; color: #3b82f6; letter-spacing: 0.1em; margin-bottom: 24px; font-family: monospace; }
+    .leaderboard { text-align: left; margin-bottom: 20px; }
+    .leader-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #1a1a1a; }
     .leader-row:last-child { border-bottom: none; }
-    .leader-rank { color: #555; font-size: 0.85rem; min-width: 24px; }
+    .leader-rank { color: #444; font-size: 0.8rem; min-width: 24px; }
     .leader-rank.gold { color: #fbbf24; }
     .leader-rank.silver { color: #9ca3af; }
     .leader-rank.bronze { color: #cd7f32; }
     .leader-name { flex: 1; font-weight: 600; }
     .leader-score { color: #3b82f6; font-weight: 700; }
     .overlay-btn {
-      background: #3b82f6;
-      color: #fff;
-      border: none;
-      padding: 14px 32px;
-      font-size: 1rem;
-      font-weight: 600;
-      border-radius: 10px;
-      cursor: pointer;
-      font-family: inherit;
-      transition: background 0.15s;
+      background: #3b82f6; color: #fff; border: none;
+      padding: 12px 28px; font-size: 0.95rem; font-weight: 600; border-radius: 10px;
+      cursor: pointer; font-family: inherit; transition: background 0.15s;
     }
     .overlay-btn:hover { background: #2563eb; }
-
-    .waiting-overlay {
-      text-align: center;
-    }
-    .waiting-overlay h2 { font-size: 1.5rem; margin-bottom: 16px; }
-    .waiting-overlay p { color: #666; margin-bottom: 8px; }
-
+    .overlay-error { color: #ef4444; margin-top: 8px; font-size: 0.85rem; }
+    .connecting { text-align: center; padding: 60px; color: #444; }
     @media (max-width: 700px) {
       .game-area { flex-direction: column; }
-      .sidebar { width: 100%; max-height: 250px; }
-      .toolbar { justify-content: center; }
+      .sidebar { width: 100%; max-height: 220px; }
       .header { flex-wrap: wrap; gap: 8px; }
+      .timer-bar { width: 120px; }
     }
   </style>
 </head>
 <body>
   <div class="header">
-    <div class="header-left">
-      <div class="room-code" id="roomCode"></div>
-      <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
-      <div class="timer-text" id="timerText">80</div>
-    </div>
+    <div class="room-code" id="roomCodeDisplay"></div>
     <div class="header-center">
-      <div class="round-info" id="roundInfo">round 1/3</div>
+      <div class="round-info" id="roundInfo">connecting...</div>
       <div class="word-display hidden" id="wordDisplay">_ _ _ _ _</div>
     </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
+      <div class="timer-text" id="timerText">--</div>
+    </div>
     <div class="header-right">
-      <button class="score-btn" onclick="showScoreboard()">scores</button>
-      <button class="exit-btn" onclick="leaveGame()">exit</button>
+      <button class="btn-small" onclick="showScoreboard()">scores</button>
+      <button class="btn-small" onclick="leaveGame()">exit</button>
     </div>
   </div>
 
@@ -359,11 +161,11 @@
     <div class="canvas-wrapper">
       <div class="toolbar hidden" id="toolbar">
         <div class="color-palette" id="colorPalette"></div>
-        <div style="width:1px;height:20px;background:#222;margin:0 4px;"></div>
+        <div style="width:1px;height:18px;background:#222;margin:0 3px;"></div>
         <button class="size-btn active" data-size="4" onclick="setBrushSize(4)">S</button>
         <button class="size-btn" data-size="8" onclick="setBrushSize(8)">M</button>
-        <button class="size-btn" data-size="16" onclick="setBrushSize(16)">L</button>
-        <div style="width:1px;height:20px;background:#222;margin:0 4px;"></div>
+        <button class="size-btn" data-size="14" onclick="setBrushSize(14)">L</button>
+        <div style="width:1px;height:18px;background:#222;margin:0 3px;"></div>
         <button class="tool-btn" id="eraserBtn" onclick="toggleEraser()">eraser</button>
         <button class="tool-btn" onclick="clearCanvas()">clear</button>
         <button class="tool-btn" onclick="undoStroke()">undo</button>
@@ -377,14 +179,14 @@
 
     <div class="sidebar">
       <div class="players-panel">
-        <div class="panel-title">players</div>
+        <div class="panel-title">players (<span id="playerCountNum">0</span>)</div>
         <div id="playerList"></div>
       </div>
       <div class="chat-panel">
-        <div class="chat-header">chat</div>
+        <div class="chat-header">chat / guesses</div>
         <div class="chat-messages" id="chatMessages"></div>
         <div class="chat-input-area" id="chatInputArea">
-          <input type="text" id="chatInput" placeholder="type your guess..." maxlength="100" onkeydown="if(event.key==='Enter')sendGuess()">
+          <input type="text" id="chatInput" placeholder="type your guess..." maxlength="100" onkeydown="if(event.key==='Enter')sendGuess()" disabled>
         </div>
       </div>
     </div>
@@ -396,15 +198,15 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    const socket = io();
     const code = new URLSearchParams(window.location.search).get('code');
+    const nickname = sessionStorage.getItem('nickname') || 'Anonymous';
     const myId = socket.id;
 
     if (!code) { window.location.href = '/index.html'; }
 
-    document.getElementById('roomCode').textContent = code;
+    document.getElementById('roomCodeDisplay').textContent = code;
 
-    // --- Canvas Setup ---
+    // --- Canvas ---
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     let isDrawing = false;
@@ -413,7 +215,6 @@
     let currentSize = 4;
     let isEraser = false;
     let strokes = [];
-    let currentStroke = [];
 
     const COLORS = [
       '#000000','#ffffff','#ef4444','#f97316','#eab308',
@@ -423,15 +224,13 @@
 
     function resizeCanvas() {
       const container = canvas.parentElement;
-      canvas.width = container.clientWidth;
-      canvas.height = container.clientHeight;
+      const rect = container.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
       redrawCanvas();
     }
     window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
 
-    // Color palette
-    const palette = document.getElementById('colorPalette');
     COLORS.forEach(c => {
       const btn = document.createElement('button');
       btn.className = 'color-btn' + (c === '#000000' ? ' active' : '');
@@ -443,7 +242,7 @@
         isEraser = false;
         document.getElementById('eraserBtn').classList.remove('active');
       };
-      palette.appendChild(btn);
+      document.getElementById('colorPalette').appendChild(btn);
     });
 
     function setBrushSize(size) {
@@ -454,22 +253,18 @@
 
     function toggleEraser() {
       isEraser = !isEraser;
-      const btn = document.getElementById('eraserBtn');
-      btn.classList.toggle('active', isEraser);
-      if (isEraser) {
-        currentColor = '#ffffff';
-      } else {
-        currentColor = '#000000';
-      }
+      document.getElementById('eraserBtn').classList.toggle('active', isEraser);
+      if (isEraser) currentColor = '#ffffff';
+      else { currentColor = '#000000'; document.querySelector('.color-btn').click(); }
     }
 
     function getPos(e) {
       const rect = canvas.getBoundingClientRect();
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const cx = e.touches ? e.touches[0].clientX : e.clientX;
+      const cy = e.touches ? e.touches[0].clientY : e.clientY;
       return {
-        x: (clientX - rect.left) * (canvas.width / rect.width),
-        y: (clientY - rect.top) * (canvas.height / rect.height)
+        x: (cx - rect.left) * (canvas.width / rect.width),
+        y: (cy - rect.top) * (canvas.height / rect.height)
       };
     }
 
@@ -477,28 +272,28 @@
     canvas.addEventListener('mousemove', draw);
     canvas.addEventListener('mouseup', endDraw);
     canvas.addEventListener('mouseleave', endDraw);
-    canvas.addEventListener('touchstart', e => { e.preventDefault(); startDraw(e); });
-    canvas.addEventListener('touchmove', e => { e.preventDefault(); draw(e); });
+    canvas.addEventListener('touchstart', e => { e.preventDefault(); startDraw(e); }, { passive: false });
+    canvas.addEventListener('touchmove', e => { e.preventDefault(); draw(e); }, { passive: false });
     canvas.addEventListener('touchend', endDraw);
 
+    let currentStroke = null;
+
     function startDraw(e) {
-      if (!isDrawer) return;
+      if (!window.isDrawer) return;
       isDrawing = true;
       const pos = getPos(e);
-      lastX = pos.x;
-      lastY = pos.y;
-      currentStroke = [{ x: pos.x, y: pos.y }];
+      lastX = pos.x; lastY = pos.y;
+      currentStroke = [{ x: pos.x, y: pos.y, color: isEraser ? '#ffffff' : currentColor, size: isEraser ? currentSize * 3 : currentSize }];
 
       socket.emit('draw-event', {
-        type: 'start',
-        x: pos.x, y: pos.y,
+        type: 'start', x: pos.x, y: pos.y,
         color: isEraser ? '#ffffff' : currentColor,
         size: isEraser ? currentSize * 3 : currentSize
       });
     }
 
     function draw(e) {
-      if (!isDrawing || !isDrawer) return;
+      if (!isDrawing || !window.isDrawer) return;
       const pos = getPos(e);
       ctx.beginPath();
       ctx.moveTo(lastX, lastY);
@@ -510,25 +305,20 @@
       ctx.stroke();
 
       socket.emit('draw-event', {
-        type: 'draw',
-        x1: lastX, y1: lastY,
-        x2: pos.x, y2: pos.y,
+        type: 'draw', x1: lastX, y1: lastY, x2: pos.x, y2: pos.y,
         color: isEraser ? '#ffffff' : currentColor,
         size: isEraser ? currentSize * 3 : currentSize
       });
 
-      currentStroke.push({ x: pos.x, y: pos.y, ex: pos.x, ey: pos.y });
-      lastX = pos.x;
-      lastY = pos.y;
+      currentStroke.push({ x: pos.x, y: pos.y, color: isEraser ? '#ffffff' : currentColor, size: isEraser ? currentSize * 3 : currentSize });
+      lastX = pos.x; lastY = pos.y;
     }
 
     function endDraw() {
       if (!isDrawing) return;
       isDrawing = false;
-      if (currentStroke.length > 0) {
-        strokes.push(currentStroke);
-        currentStroke = [];
-      }
+      if (currentStroke && currentStroke.length > 0) strokes.push(currentStroke);
+      currentStroke = null;
     }
 
     function clearCanvas() {
@@ -539,7 +329,7 @@
     }
 
     function undoStroke() {
-      if (!isDrawer || strokes.length === 0) return;
+      if (!window.isDrawer || strokes.length === 0) return;
       strokes.pop();
       redrawCanvas();
       socket.emit('draw-sync', { type: 'undo', strokes });
@@ -549,7 +339,7 @@
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       strokes.forEach(stroke => {
-        if (stroke.length < 2) return;
+        if (stroke.length < 1) return;
         ctx.beginPath();
         ctx.moveTo(stroke[0].x, stroke[0].y);
         for (let i = 1; i < stroke.length; i++) {
@@ -563,60 +353,114 @@
       });
     }
 
-    // --- Socket Events ---
-    let isDrawer = false;
-    let myNickname = sessionStorage.getItem('nickname') || 'Anonymous';
-    let players = [];
-    let gameState = 'waiting';
-    let currentWord = null;
+    function drawPoint(x, y, color, size) {
+      ctx.beginPath();
+      ctx.arc(x, y, size / 2, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    }
 
-    socket.on('your-word', ({ word }) => {
-      currentWord = word;
-      isDrawer = true;
-      document.getElementById('toolbar').classList.remove('hidden');
-      document.getElementById('chatInputArea').classList.add('drawer');
-      document.getElementById('chatInput').disabled = true;
-      document.getElementById('wordDisplay').textContent = word;
-      document.getElementById('wordDisplay').classList.remove('hidden');
-      addSystemMessage('your word: ' + word);
+    // --- Socket ---
+    window.isDrawer = false;
+    window.players = [];
+    window.gameState = 'connecting';
+
+    socket.on('connect', () => {
+      socket.emit('rejoin-room', { code, nickname });
     });
 
-    socket.on('round-start', (data) => {
-      gameState = 'playing';
-      currentWord = null;
-      isDrawer = data.drawerId === socket.id;
+    socket.on('connect_error', () => {
+      showOverlay('connection error', 'Retrying...', null, true);
+    });
+
+    socket.on('disconnect', () => {
+      window.gameState = 'disconnected';
+      showOverlay('disconnected', 'Trying to reconnect...', null, true);
+    });
+
+    socket.on('room-joined', (data) => {
+      window.gameState = data.gameState;
+      window.players = data.players || [];
+      renderPlayers(window.players);
+
+      if (data.gameState === 'playing') {
+        window.gameState = 'playing';
+        document.getElementById('roundInfo').textContent = 'game in progress';
+        document.getElementById('chatInput').disabled = false;
+      } else {
+        document.getElementById('roundInfo').textContent = 'waiting for host to start...';
+      }
+
+      hideOverlay();
+    });
+
+    socket.on('player-list', ({ players }) => {
+      window.players = players || [];
+      renderPlayers(window.players);
+    });
+
+    socket.on('you-are-host', () => {
+      // host logic handled in lobby
+    });
+
+    socket.on('game-start', (data) => {
+      window.gameState = 'playing';
+      window.players = data.players || [];
       strokes = [];
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+      renderPlayers(window.players);
+      hideOverlay();
+      document.getElementById('roundInfo').textContent = 'starting...';
+    });
 
-      document.getElementById('toolbar').classList.add('hidden');
-      document.getElementById('chatInput').disabled = false;
-      document.getElementById('chatInputArea').classList.remove('drawer');
+    socket.on('round-start', (data) => {
+      window.gameState = 'playing';
+      strokes = [];
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      resizeCanvas();
 
-      document.getElementById('wordDisplay').classList.add('hidden');
-      document.getElementById('roundInfo').textContent = `round ${data.round}/${data.totalRounds}`;
+      window.isDrawer = data.drawerId === socket.id;
+      window.players = data.players || [];
+      renderPlayers(window.players);
 
-      if (!isDrawer) {
-        document.getElementById('wordDisplay').textContent = data.wordDisplay;
-        document.getElementById('wordDisplay').classList.remove('hidden');
+      const wordDisplay = document.getElementById('wordDisplay');
+      if (window.isDrawer) {
+        document.getElementById('toolbar').classList.remove('hidden');
+        document.getElementById('chatInputArea').classList.add('drawer');
+        document.getElementById('chatInput').disabled = true;
+        wordDisplay.textContent = 'draw this!';
+        wordDisplay.classList.remove('hidden');
       } else {
-        document.getElementById('wordDisplay').textContent = '?????';
-        document.getElementById('wordDisplay').classList.remove('hidden');
+        document.getElementById('toolbar').classList.add('hidden');
+        document.getElementById('chatInputArea').classList.remove('drawer');
+        document.getElementById('chatInput').disabled = false;
+        wordDisplay.textContent = data.wordDisplay;
+        wordDisplay.classList.remove('hidden');
       }
 
-      document.getElementById('overlay').classList.remove('visible');
-      renderPlayers(data.players || players);
+      document.getElementById('roundInfo').textContent = `round ${data.round}/${data.totalRounds}`;
       updateTimer(data.timeLeft);
+      hideOverlay();
     });
 
-    socket.on('timer', ({ timeLeft }) => {
-      updateTimer(timeLeft);
+    socket.on('your-word', ({ word }) => {
+      window.isDrawer = true;
+      document.getElementById('toolbar').classList.remove('hidden');
+      document.getElementById('chatInputArea').classList.add('drawer');
+      document.getElementById('chatInput').disabled = true;
+      const wordDisplay = document.getElementById('wordDisplay');
+      wordDisplay.textContent = word;
+      wordDisplay.classList.remove('hidden');
     });
+
+    socket.on('timer', ({ timeLeft }) => updateTimer(timeLeft));
 
     function updateTimer(timeLeft) {
       const fill = document.getElementById('timerFill');
       const text = document.getElementById('timerText');
-      const pct = (timeLeft / 80) * 100;
+      const pct = Math.max(0, (timeLeft / ROUND_TIME) * 100);
       fill.style.width = pct + '%';
       text.textContent = timeLeft;
       fill.className = 'timer-fill';
@@ -625,14 +469,19 @@
     }
 
     socket.on('draw-event', (data) => {
-      ctx.beginPath();
-      ctx.moveTo(data.x1 || data.x, data.y1 || data.y);
-      ctx.lineTo(data.x2 || data.x, data.y2 || data.y);
-      ctx.strokeStyle = data.color;
-      ctx.lineWidth = data.size;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.stroke();
+      if (window.isDrawer) return;
+      if (data.type === 'start') {
+        drawPoint(data.x, data.y, data.color, data.size);
+      } else if (data.type === 'draw') {
+        ctx.beginPath();
+        ctx.moveTo(data.x1, data.y1);
+        ctx.lineTo(data.x2, data.y2);
+        ctx.strokeStyle = data.color;
+        ctx.lineWidth = data.size;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+      }
     });
 
     socket.on('draw-sync', (data) => {
@@ -646,71 +495,30 @@
       }
     });
 
-    socket.on('clear-canvas', () => {
-      strokes = [];
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    socket.on('correct-guess', ({ nickname, points, players: p }) => {
+      addMessage(nickname, `guessed correctly! +${points}`, 'correct');
+      if (p) { window.players = p; renderPlayers(p); }
     });
 
-    socket.on('guess-result', ({ players: p }) => {
-      renderPlayers(p);
-    });
+    socket.on('close-guess', () => addMessage('system', 'Someone is close!', 'system'));
 
     socket.on('chat-message', ({ nickname, text, isGuess }) => {
       addMessage(nickname, text, isGuess ? 'guess' : '');
     });
 
-    socket.on('correct-guess', ({ nickname, points, players: p }) => {
-      addMessage(nickname, `guessed correctly! +${points}`, 'correct');
-      renderPlayers(p);
-    });
-
-    socket.on('close-guess', () => {
-      addMessage('system', 'someone is close!', 'system');
-    });
-
-    socket.on('player-list', ({ players: p }) => {
-      renderPlayers(p);
-    });
-
     socket.on('round-end', ({ word, players: p }) => {
-      gameState = 'roundEnd';
-      currentWord = word;
-      isDrawer = false;
-      document.getElementById('overlayContent').innerHTML = `
-        <div class="overlay-title">time's up!</div>
-        <div class="overlay-word">${word}</div>
-        <div class="leaderboard">
-          ${(p || players).sort((a,b) => b.score - a.score).map((pl, i) => `
-            <div class="leader-row">
-              <div class="leader-rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">#${i+1}</div>
-              <div class="leader-name">${escapeHtml(pl.nickname)}</div>
-              <div class="leader-score">${pl.score}</div>
-            </div>
-          `).join('')}
-        </div>
-        <button class="overlay-btn" onclick="hideOverlay()">ok</button>
-      `;
-      document.getElementById('overlay').classList.add('visible');
-      if (p) renderPlayers(p);
+      window.isDrawer = false;
+      document.getElementById('toolbar').classList.add('hidden');
+      if (p) { window.players = p; renderPlayers(p); }
+      const leaderboard = [...(p || window.players)].sort((a, b) => b.score - a.score);
+      showOverlay("time's up!", word, leaderboard, false);
     });
 
     socket.on('game-end', ({ leaderboard }) => {
-      gameState = 'end';
-      document.getElementById('overlayContent').innerHTML = `
-        <div class="overlay-title">game over!</div>
-        <div class="leaderboard">
-          ${leaderboard.map((pl, i) => `
-            <div class="leader-row">
-              <div class="leader-rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">#${i+1}</div>
-              <div class="leader-name">${escapeHtml(pl.nickname)}</div>
-              <div class="leader-score">${pl.score}</div>
-            </div>
-          `).join('')}
-        </div>
-        <button class="overlay-btn" onclick="leaveGame()">back to lobby</button>
-      `;
-      document.getElementById('overlay').classList.add('visible');
+      window.gameState = 'end';
+      window.isDrawer = false;
+      document.getElementById('toolbar').classList.add('hidden');
+      showOverlay('game over!', null, leaderboard, false, true);
     });
 
     socket.on('back-to-lobby', ({ players: p }) => {
@@ -722,48 +530,80 @@
     });
 
     socket.on('drawer-left', () => {
-      addSystemMessage('drawer left the game');
+      addMessage('system', 'The drawer left! Skipping...', 'system');
     });
 
+    socket.on('error', ({ message }) => {
+      showOverlay('Error', message, null, false, false, '/index.html');
+    });
+
+    socket.on('new-host', () => {
+      addMessage('system', 'A new host has been selected', 'system');
+    });
+
+    // --- UI Functions ---
     function renderPlayers(list) {
-      players = list;
+      window.players = list;
+      document.getElementById('playerCountNum').textContent = list.length;
       const el = document.getElementById('playerList');
       el.innerHTML = list.map(p => {
-        const isDrawing = p.id === socket.id && isDrawer;
-        return `
-          <div class="mini-player${p.id === socket.id ? ' you' : ''}">
-            <div class="mini-dot${isDrawing ? ' drawing' : ''}"></div>
-            <div class="mini-name">${escapeHtml(p.nickname)}</div>
-            <div class="mini-score">${p.score}</div>
-          </div>
-        `;
+        const isMe = p.id === socket.id;
+        const isDrawing = p.isDrawer;
+        return `<div class="mini-player${isMe ? ' you' : ''}${isDrawing ? ' drawer' : ''}">
+          <div class="mini-dot${isDrawing ? ' drawing' : ''}"></div>
+          <div class="mini-name">${escapeHtml(p.nickname)}${isMe ? ' (you)' : ''}</div>
+          <div class="mini-score">${p.score}</div>
+        </div>`;
       }).join('');
     }
 
     function sendGuess() {
       const input = document.getElementById('chatInput');
       const text = input.value.trim();
-      if (!text || isDrawer) return;
+      if (!text || window.isDrawer) return;
       socket.emit('guess', { text });
       input.value = '';
+      input.focus();
     }
 
     function showScoreboard() {
+      const lb = [...window.players].sort((a, b) => b.score - a.score);
+      showOverlay('scores', null, lb, false, false, null, true);
+    }
+
+    function showOverlay(title, word, leaderboard, retry, isEnd, redirectUrl, isScoreboard) {
       const overlay = document.getElementById('overlay');
       const content = document.getElementById('overlayContent');
-      content.innerHTML = `
-        <div class="overlay-title">scores</div>
-        <div class="leaderboard">
-          ${players.sort((a,b) => b.score - a.score).map((p, i) => `
-            <div class="leader-row">
-              <div class="leader-rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">#${i+1}</div>
-              <div class="leader-name">${escapeHtml(p.nickname)}</div>
-              <div class="leader-score">${p.score}</div>
-            </div>
-          `).join('')}
-        </div>
-        <button class="overlay-btn" onclick="hideOverlay()">close</button>
-      `;
+      let html = `<div class="overlay-title">${escapeHtml(title)}</div>`;
+
+      if (word) html += `<div class="overlay-word">${escapeHtml(word)}</div>`;
+
+      if (leaderboard && leaderboard.length > 0) {
+        html += '<div class="leaderboard">';
+        leaderboard.forEach((pl, i) => {
+          const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+          html += `<div class="leader-row">
+            <div class="leader-rank ${rankClass}">#${i+1}</div>
+            <div class="leader-name">${escapeHtml(pl.nickname)}</div>
+            <div class="leader-score">${pl.score}</div>
+          </div>`;
+        });
+        html += '</div>';
+      }
+
+      if (redirectUrl) {
+        html += `<button class="overlay-btn" onclick="window.location.href='${redirectUrl}'">ok</button>`;
+      } else if (retry) {
+        html += '<div style="color:#555;font-size:0.85rem;margin-top:8px;">reconnecting...</div>';
+      } else if (isEnd) {
+        html += `<button class="overlay-btn" onclick="window.location.href='/lobby.html?code=${code}'">back to lobby</button>`;
+      } else if (isScoreboard) {
+        html += `<button class="overlay-btn" onclick="hideOverlay()">close</button>`;
+      } else {
+        html += `<button class="overlay-btn" onclick="hideOverlay()">ok</button>`;
+      }
+
+      content.innerHTML = html;
       overlay.classList.add('visible');
     }
 
@@ -771,13 +611,8 @@
       document.getElementById('overlay').classList.remove('visible');
     }
 
-    function requestHint() {
-      socket.emit('hint');
-    }
-
-    function skipWord() {
-      socket.emit('skip-word');
-    }
+    function requestHint() { socket.emit('hint'); }
+    function skipWord() { socket.emit('skip-word'); }
 
     function leaveGame() {
       window.location.href = `/lobby.html?code=${code}`;
@@ -787,41 +622,29 @@
       const el = document.getElementById('chatMessages');
       const div = document.createElement('div');
       div.className = 'chat-msg ' + type;
-      div.innerHTML = `<span class="nick">${escapeHtml(nick)}</span>: ${escapeHtml(text)}`;
-      el.appendChild(div);
-      el.scrollTop = el.scrollHeight;
-    }
-
-    function addSystemMessage(text) {
-      const el = document.getElementById('chatMessages');
-      const div = document.createElement('div');
-      div.className = 'chat-msg system';
-      div.textContent = text;
+      if (type === 'system') {
+        div.textContent = text;
+      } else {
+        div.innerHTML = `<span class="nick">${escapeHtml(nick)}</span>: ${escapeHtml(text)}`;
+      }
       el.appendChild(div);
       el.scrollTop = el.scrollHeight;
     }
 
     function escapeHtml(text) {
+      if (!text) return '';
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
     }
 
-    // --- Join room ---
-    socket.emit('join-room', { code, nickname: myNickname });
-
-    socket.on('room-joined', () => {
-      // joined successfully
-    });
-
-    socket.on('error', ({ message }) => {
-      alert(message);
-      window.location.href = '/index.html';
-    });
-
-    // White canvas on load
+    // --- Init ---
+    resizeCanvas();
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    showOverlay('connecting', null, null, true);
+
+    const ROUND_TIME = 80;
   </script>
 </body>
 </html>
