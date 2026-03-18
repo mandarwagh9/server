@@ -410,14 +410,24 @@
     }
 
     async function upvote(id) {
+      const btn = document.querySelector(`[data-id="${id}"] .vote-btn`);
+      if (btn.classList.contains('voted')) {
+        showToast('Already upvoted!', 'error');
+        return;
+      }
       try {
         const res = await fetch(`${API_BASE}/api/suggestions/${id}/upvote`, { method: 'POST' });
+        if (res.status === 400) {
+          showToast('Already upvoted!', 'error');
+          btn.classList.add('voted');
+          return;
+        }
         const data = await res.json();
         
         const card = document.querySelector(`[data-id="${id}"]`);
         if (card) {
           card.querySelector('.vote-count').textContent = data.upvotes;
-          card.querySelector('.vote-btn').classList.add('voted');
+          btn.classList.add('voted');
         }
       } catch (err) {
         showToast('Failed to upvote', 'error');

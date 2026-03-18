@@ -76,6 +76,14 @@ def init_db():
         ip_address TEXT
     )
     """)
+    conn.execute("""
+    CREATE TABLE IF NOT EXISTS suggestion_upvotes (
+        suggestion_id TEXT NOT NULL,
+        ip_address TEXT NOT NULL,
+        created_at INTEGER,
+        PRIMARY KEY (suggestion_id, ip_address)
+    )
+    """)
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_uploaded_at ON files(uploaded_at DESC)"
     )
@@ -705,6 +713,8 @@ def create_suggestion(request: Request, suggestion: dict):
 
 @app.post("/api/suggestions/{suggestion_id}/upvote")
 def upvote_suggestion(suggestion_id: str, request: Request):
+    ip_address = request.client.host if request.client else None
+
     conn = get_db()
     cur = conn.cursor()
 
@@ -714,9 +724,20 @@ def upvote_suggestion(suggestion_id: str, request: Request):
     if not row:
         raise HTTPException(status_code=404, detail="Suggestion not found")
 
+    cur.execute(
+        "SELECT 1 FROM suggestion_upvotes WHERE suggestion_id = ? AND ip_address = ?",
+        (suggestion_id, ip_address),
+    )
+    if cur.fetchone():
+        raise HTTPException(status_code=400, detail="Already upvoted")
+
     new_upvotes = row[0] + 1
     conn.execute(
         "UPDATE suggestions SET upvotes = ? WHERE id = ?", (new_upvotes, suggestion_id)
+    )
+    conn.execute(
+        "INSERT INTO suggestion_upvotes (suggestion_id, ip_address, created_at) VALUES (?, ?, ?)",
+        (suggestion_id, ip_address, int(time.time())),
     )
     conn.commit()
 
