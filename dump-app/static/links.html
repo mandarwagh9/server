@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Links - writesomething.fun</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+      background: #0a0a0a;
+      color: #fff;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    .container { max-width: 800px; margin: 0 auto; }
+    header {
+      margin-bottom: 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    h1 { font-size: 2rem; font-weight: 700; }
+    .back-link { color: #666; text-decoration: none; font-size: 0.9rem; }
+    .back-link:hover { color: #fff; }
+    .add-section {
+      background: #111;
+      border: 1px solid #222;
+      padding: 24px;
+      margin-bottom: 32px;
+      border-radius: 12px;
+    }
+    .add-section h2 { font-size: 1.1rem; margin-bottom: 20px; color: #888; }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-group label { font-size: 0.8rem; color: #555; }
+    .form-group input, .form-group textarea {
+      background: #0a0a0a;
+      border: 1px solid #333;
+      color: #fff;
+      padding: 10px 14px;
+      font-size: 0.9rem;
+      font-family: inherit;
+      border-radius: 6px;
+    }
+    .form-group input:focus, .form-group textarea:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+    .form-group textarea { resize: vertical; min-height: 60px; }
+    .add-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
+    button {
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.2s;
+    }
+    button:hover { background: #2563eb; }
+    button:disabled { background: #333; cursor: not-allowed; }
+    .search-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .search-bar input {
+      flex: 1;
+      background: #111;
+      border: 1px solid #222;
+      color: #fff;
+      padding: 10px 16px;
+      font-size: 0.9rem;
+      border-radius: 8px;
+      font-family: inherit;
+    }
+    .search-bar input:focus { outline: none; border-color: #3b82f6; }
+    .search-bar button { padding: 10px 16px; }
+    .tags-bar {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .tag-btn {
+      background: #111;
+      border: 1px solid #222;
+      color: #666;
+      padding: 5px 12px;
+      font-size: 0.75rem;
+      border-radius: 20px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .tag-btn:hover { border-color: #444; color: #fff; }
+    .tag-btn.active { background: #1e3a5f; border-color: #3b82f6; color: #fff; }
+    .links-list { display: flex; flex-direction: column; gap: 12px; }
+    .link-card {
+      background: #111;
+      border: 1px solid #1a1a1a;
+      padding: 20px;
+      border-radius: 10px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      transition: border-color 0.2s;
+    }
+    .link-card:hover { border-color: #2a2a2a; }
+    .link-icon {
+      width: 40px;
+      height: 40px;
+      background: #1a1a1a;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+    .link-content { flex: 1; min-width: 0; }
+    .link-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #fff;
+      text-decoration: none;
+    }
+    .link-title:hover { color: #3b82f6; }
+    .link-url {
+      font-size: 0.8rem;
+      color: #444;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 6px;
+    }
+    .link-desc {
+      font-size: 0.85rem;
+      color: #666;
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+    .link-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .link-tag {
+      background: #1a1a1a;
+      color: #555;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 0.7rem;
+    }
+    .link-stats { font-size: 0.75rem; color: #444; }
+    .link-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .link-actions button {
+      background: transparent;
+      border: 1px solid #222;
+      color: #555;
+      padding: 6px 10px;
+      font-size: 0.75rem;
+    }
+    .link-actions button:hover { background: #1a1a1a; color: #fff; }
+    .empty-state { text-align: center; padding: 80px 20px; color: #444; }
+    .empty-icon { font-size: 3rem; margin-bottom: 16px; }
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #111;
+      border: 1px solid #333;
+      padding: 16px 24px;
+      border-radius: 8px;
+      animation: slideIn 0.3s ease;
+      z-index: 1000;
+    }
+    .toast.success { border-color: #22c55e; }
+    .toast.error { border-color: #ef4444; }
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <a href="/" class="back-link">← writesomething.fun</a>
+        <h1>Links</h1>
+      </div>
+    </header>
+
+    <div class="add-section">
+      <h2>Add Link</h2>
+      <form id="linkForm">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>URL *</label>
+            <input type="url" id="linkUrl" placeholder="https://..." required>
+          </div>
+          <div class="form-group">
+            <label>Title</label>
+            <input type="text" id="linkTitle" placeholder="Link title">
+          </div>
+          <div class="form-group full">
+            <label>Description</label>
+            <textarea id="linkDesc" placeholder="Short description..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>Tags (comma separated)</label>
+            <input type="text" id="linkTags" placeholder="work, tools, reference">
+          </div>
+          <div class="add-actions">
+            <button type="submit" id="addBtn">Save Link</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Search links...">
+      <button onclick="searchLinks()">Search</button>
+    </div>
+
+    <div class="tags-bar" id="tagsBar"></div>
+
+    <div class="links-list" id="linksList">
+      <div class="empty-state">
+        <div class="empty-icon">🔗</div>
+        <p>No links saved yet.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let allLinks = [];
+    let allTags = [];
+    let activeTag = null;
+
+    document.getElementById('linkForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('addBtn');
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+
+      const data = {
+        url: document.getElementById('linkUrl').value.trim(),
+        title: document.getElementById('linkTitle').value.trim() || null,
+        description: document.getElementById('linkDesc').value.trim() || null,
+        tags: document.getElementById('linkTags').value.trim() || '',
+      };
+
+      try {
+        const res = await fetch('/api/links', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        if (!res.ok) throw new Error();
+        showToast('Link saved!', 'success');
+        e.target.reset();
+        loadLinks();
+      } catch {
+        showToast('Failed to save link', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save Link';
+      }
+    });
+
+    document.getElementById('searchInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); searchLinks(); }
+    });
+
+    async function loadLinks() {
+      try {
+        const res = await fetch('/api/links');
+        const data = await res.json();
+        allLinks = data.links || [];
+        allTags = data.all_tags || [];
+        renderTags();
+        renderLinks();
+      } catch (err) {
+        console.error('Failed to load links:', err);
+      }
+    }
+
+    async function searchLinks() {
+      const q = document.getElementById('searchInput').value.trim();
+      try {
+        const res = await fetch('/api/links?q=' + encodeURIComponent(q));
+        const data = await res.json();
+        allLinks = data.links || [];
+        activeTag = null;
+        renderTags();
+        renderLinks();
+      } catch (err) {
+        console.error('Search failed:', err);
+      }
+    }
+
+    function filterByTag(tag) {
+      activeTag = activeTag === tag ? null : tag;
+      renderTags();
+      renderLinks();
+    }
+
+    function renderTags() {
+      const bar = document.getElementById('tagsBar');
+      if (allTags.length === 0) {
+        bar.innerHTML = '';
+        return;
+      }
+      bar.innerHTML = allTags.map(t =>
+        `<button class="tag-btn${activeTag === t ? ' active' : ''}" onclick="filterByTag('${escapeHtml(t)}')">${escapeHtml(t)}</button>`
+      ).join('');
+    }
+
+    function renderLinks() {
+      const list = document.getElementById('linksList');
+      let filtered = allLinks;
+      if (activeTag) {
+        filtered = allLinks.filter(l => l.tags.split(',').map(t => t.trim()).includes(activeTag));
+      }
+
+      if (filtered.length === 0) {
+        list.innerHTML = `<div class="empty-state"><div class="empty-icon">🔗</div><p>${allLinks.length === 0 ? 'No links saved yet.' : 'No links match your search.'}</p></div>`;
+        return;
+      }
+
+      list.innerHTML = filtered.map(l => {
+        const tags = l.tags ? l.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+        const displayTitle = l.title || l.url;
+        const displayUrl = l.url.replace(/^https?:\/\//, '').split('/')[0];
+        const favicon = getFavicon(l.url);
+
+        return `
+        <div class="link-card">
+          <div class="link-icon">${favicon}</div>
+          <div class="link-content">
+            <a class="link-title" href="${escapeHtml(l.url)}" target="_blank" rel="noopener" onclick="trackClick('${l.id}', '${escapeHtml(l.url)}')">${escapeHtml(displayTitle)}</a>
+            <div class="link-url">${escapeHtml(displayUrl)}</div>
+            ${l.description ? `<div class="link-desc">${escapeHtml(l.description)}</div>` : ''}
+            <div class="link-meta">
+              ${tags.map(t => `<span class="link-tag">${escapeHtml(t)}</span>`).join('')}
+              <span class="link-stats">${l.clicks} clicks</span>
+            </div>
+          </div>
+          <div class="link-actions">
+            <button onclick="deleteLink('${l.id}')" title="Delete">×</button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    function getFavicon(url) {
+      try {
+        const domain = new URL(url).hostname;
+        return `<img src="https://www.google.com/s2/favicons?domain=${domain}&sz=32" style="width:20px;height:20px;border-radius:4px;" onerror="this.parentElement.innerHTML='🔗'">`;
+      } catch {
+        return '🔗';
+      }
+    }
+
+    async function trackClick(id, url) {
+      try {
+        await fetch('/api/links/' + id + '/click', { method: 'POST' });
+      } catch {}
+    }
+
+    async function deleteLink(id) {
+      if (!confirm('Delete this link?')) return;
+      try {
+        const res = await fetch('/api/links/' + id, { method: 'DELETE' });
+        if (!res.ok) throw new Error();
+        showToast('Link deleted', 'success');
+        loadLinks();
+      } catch {
+        showToast('Failed to delete link', 'error');
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function showToast(message, type) {
+      const toast = document.createElement('div');
+      toast.className = 'toast ' + type;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    loadLinks();
+  </script>
+</body>
+</html>

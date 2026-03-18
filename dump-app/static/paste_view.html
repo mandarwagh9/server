@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loading... - writesomething.fun</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+      background: #0a0a0a;
+      color: #fff;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    header {
+      margin-bottom: 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .header-left {}
+    .back-link { color: #666; text-decoration: none; font-size: 0.9rem; display: block; margin-bottom: 8px; }
+    .back-link:hover { color: #fff; }
+    h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: 4px; }
+    .meta { font-size: 0.8rem; color: #555; display: flex; gap: 16px; flex-wrap: wrap; }
+    .header-right { display: flex; gap: 8px; align-items: center; }
+    button {
+      background: #222;
+      border: 1px solid #333;
+      color: #888;
+      padding: 8px 16px;
+      font-size: 0.85rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    button:hover { background: #2a2a2a; color: #fff; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .code-container {
+      background: #0d0d0d;
+      border: 1px solid #1a1a1a;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .code-header {
+      background: #111;
+      border-bottom: 1px solid #1a1a1a;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      color: #555;
+    }
+    .code-header .lang { color: #888; font-weight: 500; }
+    .code-container pre {
+      margin: 0;
+      padding: 20px;
+      overflow-x: auto;
+      font-size: 0.875rem;
+      line-height: 1.6;
+      max-height: 70vh;
+    }
+    .code-container code { font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace; }
+    .password-overlay {
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 12px;
+      padding: 48px;
+      text-align: center;
+      max-width: 400px;
+      margin: 100px auto;
+    }
+    .password-overlay h2 { font-size: 1.2rem; margin-bottom: 8px; }
+    .password-overlay p { color: #666; font-size: 0.9rem; margin-bottom: 24px; }
+    .password-overlay input {
+      width: 100%;
+      background: #0a0a0a;
+      border: 1px solid #333;
+      color: #fff;
+      padding: 12px 16px;
+      font-size: 1rem;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    .password-overlay input:focus { outline: none; border-color: #3b82f6; }
+    .password-overlay button { width: 100%; }
+    .error { color: #ef4444; font-size: 0.85rem; margin-top: 8px; }
+    .loading { text-align: center; padding: 100px; color: #555; }
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #111;
+      border: 1px solid #333;
+      padding: 16px 24px;
+      border-radius: 8px;
+      animation: slideIn 0.3s ease;
+      z-index: 1000;
+    }
+    .toast.success { border-color: #22c55e; }
+    .toast.error { border-color: #ef4444; }
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="loading" class="loading">Loading paste...</div>
+    <div id="passwordSection" style="display:none;"></div>
+    <div id="contentSection" style="display:none;">
+      <header>
+        <div class="header-left">
+          <a href="/paste" class="back-link">← New paste</a>
+          <h1 id="pasteTitle">Untitled</h1>
+          <div class="meta">
+            <span id="pasteLang">plaintext</span>
+            <span id="pasteViews"></span>
+            <span id="pasteDate"></span>
+          </div>
+        </div>
+        <div class="header-right">
+          <button id="copyBtn" onclick="copyCode()">Copy</button>
+          <button onclick="window.location.href='/paste'">+ New</button>
+        </div>
+      </header>
+
+      <div class="code-container">
+        <div class="code-header">
+          <span class="lang" id="langBadge">Plain Text</span>
+          <span id="lineCount"></span>
+        </div>
+        <pre id="codeBlock"><code id="codeContent"></code></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const pasteId = window.location.pathname.split('/p/')[1];
+    let currentPaste = null;
+
+    async function loadPaste(password = null) {
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('passwordSection').style.display = 'none';
+      document.getElementById('contentSection').style.display = 'none';
+
+      try {
+        let url = '/api/pastes/' + pasteId;
+        if (password) {
+          url = '/api/pastes/' + pasteId + '/verify?password=' + encodeURIComponent(password);
+        }
+
+        const res = await fetch(url);
+        if (res.status === 404) {
+          document.getElementById('loading').style.display = 'none';
+          document.body.innerHTML = '<div class="container" style="text-align:center;padding:100px"><h1>404 - Paste not found</h1><p style="color:#666;margin-top:8px">This paste may have expired or been deleted.</p><a href="/paste" style="color:#3b82f6">Create a new paste</a></div>';
+          return;
+        }
+        if (res.status === 401) {
+          showPasswordPrompt();
+          return;
+        }
+        if (!res.ok) throw new Error('Failed to load');
+
+        const data = await res.json();
+        currentPaste = data;
+        renderPaste(data);
+      } catch (err) {
+        showToast('Failed to load paste', 'error');
+      }
+    }
+
+    function renderPaste(data) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('contentSection').style.display = 'block';
+
+      document.title = (data.title || 'Untitled') + ' - writesomething.fun';
+
+      document.getElementById('pasteTitle').textContent = data.title || 'Untitled';
+      document.getElementById('pasteLang').textContent = data.language || 'plaintext';
+      document.getElementById('pasteViews').textContent = data.views + ' views';
+      document.getElementById('langBadge').textContent = (data.language || 'plaintext').charAt(0).toUpperCase() + (data.language || 'plaintext').slice(1);
+
+      if (data.created_at) {
+        const d = new Date(data.created_at * 1000);
+        document.getElementById('pasteDate').textContent = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      }
+
+      const content = data.content || '';
+      const lines = content.split('\n').length;
+      document.getElementById('lineCount').textContent = lines + ' line' + (lines !== 1 ? 's' : '');
+
+      const codeEl = document.getElementById('codeContent');
+      codeEl.textContent = content;
+
+      const lang = data.language || 'plaintext';
+      if (lang !== 'plaintext') {
+        codeEl.className = 'language-' + lang;
+        hljs.highlightElement(codeEl);
+      }
+    }
+
+    function showPasswordPrompt() {
+      document.getElementById('loading').style.display = 'none';
+      const section = document.getElementById('passwordSection');
+      section.style.display = 'block';
+      section.innerHTML = `
+        <div class="password-overlay">
+          <h2>Password Protected</h2>
+          <p>This paste is password protected.</p>
+          <input type="password" id="pwInput" placeholder="Enter password" onkeydown="if(event.key==='Enter')submitPassword()">
+          <button onclick="submitPassword()">Unlock</button>
+          <div class="error" id="pwError" style="display:none"></div>
+        </div>
+      `;
+      document.getElementById('pwInput').focus();
+    }
+
+    async function submitPassword() {
+      const pw = document.getElementById('pwInput').value;
+      const err = document.getElementById('pwError');
+      try {
+        const res = await fetch('/api/pastes/' + pasteId + '/verify?password=' + encodeURIComponent(pw));
+        if (!res.ok) {
+          err.textContent = 'Wrong password';
+          err.style.display = 'block';
+          return;
+        }
+        const data = await res.json();
+        renderPaste({ ...currentPaste, content: data.content });
+        document.getElementById('passwordSection').style.display = 'none';
+      } catch {
+        err.textContent = 'Error verifying password';
+        err.style.display = 'block';
+      }
+    }
+
+    async function copyCode() {
+      if (!currentPaste) return;
+      try {
+        await navigator.clipboard.writeText(currentPaste.content);
+        showToast('Copied to clipboard!', 'success');
+      } catch {
+        const ta = document.createElement('textarea');
+        ta.value = currentPaste.content;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        showToast('Copied to clipboard!', 'success');
+      }
+    }
+
+    function showToast(message, type) {
+      const toast = document.createElement('div');
+      toast.className = 'toast ' + type;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    loadPaste();
+  </script>
+</body>
+</html>

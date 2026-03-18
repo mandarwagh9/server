@@ -94,6 +94,36 @@ def init_db():
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_suggestion_upvotes ON suggestions(upvotes DESC)"
     )
+    conn.execute("""
+    CREATE TABLE IF NOT EXISTS pastes (
+        id TEXT PRIMARY KEY,
+        title TEXT,
+        content TEXT NOT NULL,
+        language TEXT DEFAULT 'plaintext',
+        password_hash TEXT,
+        expires_at INTEGER,
+        views INTEGER DEFAULT 0,
+        created_at INTEGER,
+        ip_address TEXT
+    )
+    """)
+    conn.execute("""
+    CREATE TABLE IF NOT EXISTS links (
+        id TEXT PRIMARY KEY,
+        url TEXT NOT NULL,
+        title TEXT,
+        description TEXT,
+        tags TEXT DEFAULT '',
+        clicks INTEGER DEFAULT 0,
+        created_at INTEGER
+    )
+    """)
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_paste_created ON pastes(created_at DESC)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_link_created ON links(created_at DESC)"
+    )
     conn.commit()
 
 
@@ -632,6 +662,302 @@ def download_file(file_id: str):
     return FileResponse(
         file_path, filename=original_name, media_type="application/octet-stream"
     )
+
+
+# --------------------------------------------------
+# PASTE API
+# --------------------------------------------------
+@app.get("/api/pastes")
+def list_pastes(limit: int = 50):
+    if limit < 1 or limit > 100:
+        limit = 50
+    conn = get_db()
+    cur = conn.cursor()
+    now = int(time.time())
+    cur.execute(
+        "SELECT id, title, language, views, created_at FROM pastes WHERE (expires_at IS NULL OR expires_at > ?) ORDER BY created_at DESC LIMIT ?",
+        (now, limit),
+    )
+    rows = cur.fetchall()
+    return {
+        "pastes": [
+            {
+                "id": r[0],
+                "title": r[1] or "Untitled",
+                "language": r[2],
+                "views": r[3],
+                "created_at": r[4],
+                "created_date": time.strftime("%b %d, %Y", time.localtime(r[4]))
+                if r[4]
+                else "",
+            }
+            for r in rows
+        ]
+    }
+
+
+@app.post("/api/pastes")
+def create_paste(request: Request, paste_data: dict):
+    content = paste_data.get("content", "").strip()
+    if not content:
+        raise HTTPException(status_code=400, detail="Content is required")
+
+    if len(content) > 500000:
+        raise HTTPException(status_code=400, detail="Content too large (max 500KB)")
+
+    title = paste_data.get("title", "").strip()[:200] or None
+    language = paste_data.get("language", "plaintext").strip()[:50] or "plaintext"
+    password = paste_data.get("password", "").strip()
+    expires_in = paste_data.get("expires_in", 0)
+
+    paste_id = str(uuid.uuid4())[:8]
+    ip_address = request.client.host if request.client else None
+
+    password_hash = None
+    if password:
+        password_hash = hashlib.sha256(password.encode()).hexdigest()
+
+    expires_at = None
+    if expires_in > 0:
+        expires_at = int(time.time()) + expires_in
+
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO pastes (id, title, content, language, password_hash, expires_at, views, created_at, ip_address) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)",
+        (
+            paste_id,
+            title,
+            content,
+            language,
+            password_hash,
+            expires_at,
+            int(time.time()),
+            ip_address,
+        ),
+    )
+    conn.commit()
+
+    return {"id": paste_id, "url": "/p/" + paste_id}
+
+
+@app.get("/api/pastes/{paste_id}")
+def get_paste(paste_id: str):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT id, title, content, language, password_hash, expires_at, views, created_at FROM pastes WHERE id = ?",
+        (paste_id,),
+    )
+    row = cur.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Paste not found")
+
+    now = int(time.time())
+    if row[5] and row[5] < now:
+        conn.execute("DELETE FROM pastes WHERE id = ?", (paste_id,))
+        conn.commit()
+        raise HTTPException(status_code=404, detail="Paste expired")
+
+    conn.execute("UPDATE pastes SET views = views + 1 WHERE id = ?", (paste_id,))
+    conn.commit()
+
+    return {
+        "id": row[0],
+        "title": row[1],
+        "content": row[2],
+        "language": row[3],
+        "has_password": bool(row[4]),
+        "views": row[7],
+        "created_at": row[7],
+    }
+
+
+@app.get("/api/pastes/{paste_id}/verify")
+def verify_paste_password(paste_id: str, password: str):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT password_hash, content FROM pastes WHERE id = ?", (paste_id,))
+    row = cur.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Paste not found")
+
+    if row[0] and row[0] != hashlib.sha256(password.encode()).hexdigest():
+        raise HTTPException(status_code=401, detail="Wrong password")
+
+    return {"content": row[1]}
+
+
+@app.delete("/api/pastes/{paste_id}")
+def delete_paste(paste_id: str):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM pastes WHERE id = ?", (paste_id,))
+    if cur.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Paste not found")
+    conn.commit()
+    return {"message": "Paste deleted"}
+
+
+@app.get("/p/{paste_id}", response_class=HTMLResponse)
+def view_paste(paste_id: str):
+    paste_html = STATIC_DIR / "paste_view.html"
+    if paste_html.exists():
+        return paste_html.read_text(encoding="utf-8")
+    return HTMLResponse("<h1>Paste page not found</h1>", status_code=404)
+
+
+@app.get("/paste", response_class=HTMLResponse)
+def create_paste_page():
+    paste_html = STATIC_DIR / "paste.html"
+    if paste_html.exists():
+        return paste_html.read_text(encoding="utf-8")
+    return HTMLResponse("<h1>Paste page not found</h1>", status_code=404)
+
+
+# --------------------------------------------------
+# LINKS API
+# --------------------------------------------------
+@app.get("/api/links")
+def list_links(q: Optional[str] = None, tag: Optional[str] = None):
+    conn = get_db()
+    cur = conn.cursor()
+
+    query = "SELECT id, url, title, description, tags, clicks, created_at FROM links WHERE 1=1"
+    params = []
+
+    if q:
+        query += " AND (title LIKE ? OR description LIKE ? OR url LIKE ?)"
+        params.extend(["%" + q + "%", "%" + q + "%", "%" + q + "%"])
+
+    if tag:
+        query += " AND tags LIKE ?"
+        params.append("%" + tag + "%")
+
+    query += " ORDER BY created_at DESC"
+
+    cur.execute(query, params)
+    rows = cur.fetchall()
+
+    all_tags = set()
+    for r in rows:
+        if r[4]:
+            for t in r[4].split(","):
+                if t.strip():
+                    all_tags.add(t.strip())
+
+    return {
+        "links": [
+            {
+                "id": r[0],
+                "url": r[1],
+                "title": r[2] or r[1],
+                "description": r[3] or "",
+                "tags": r[4] or "",
+                "clicks": r[5],
+                "created_at": r[6],
+                "created_date": time.strftime("%b %d, %Y", time.localtime(r[6]))
+                if r[6]
+                else "",
+            }
+            for r in rows
+        ],
+        "all_tags": sorted(all_tags),
+    }
+
+
+@app.post("/api/links")
+def create_link(link_data: dict):
+    url = link_data.get("url", "").strip()
+    if not url:
+        raise HTTPException(status_code=400, detail="URL is required")
+
+    title = link_data.get("title", "").strip()[:200] or None
+    description = link_data.get("description", "").strip()[:1000] or None
+    tags = link_data.get("tags", "").strip()[:500] or ""
+
+    link_id = str(uuid.uuid4())[:8]
+
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO links (id, url, title, description, tags, clicks, created_at) VALUES (?, ?, ?, ?, ?, 0, ?)",
+        (link_id, url, title, description, tags, int(time.time())),
+    )
+    conn.commit()
+
+    return {"id": link_id, "message": "Link saved"}
+
+
+@app.get("/api/links/{link_id}")
+def get_link(link_id: str):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT id, url, title, description, tags, clicks, created_at FROM links WHERE id = ?",
+        (link_id,),
+    )
+    row = cur.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Link not found")
+    return {
+        "id": row[0],
+        "url": row[1],
+        "title": row[2] or row[1],
+        "description": row[3] or "",
+        "tags": row[4] or "",
+        "clicks": row[5],
+        "created_at": row[6],
+    }
+
+
+@app.put("/api/links/{link_id}")
+def update_link(link_id: str, link_data: dict):
+    url = link_data.get("url", "").strip()
+    title = link_data.get("title", "").strip()[:200] or None
+    description = link_data.get("description", "").strip()[:1000] or None
+    tags = link_data.get("tags", "").strip()[:500] or ""
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE links SET url = ?, title = ?, description = ?, tags = ? WHERE id = ?",
+        (url, title, description, tags, link_id),
+    )
+    if cur.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Link not found")
+    conn.commit()
+    return {"message": "Link updated"}
+
+
+@app.delete("/api/links/{link_id}")
+def delete_link(link_id: str):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM links WHERE id = ?", (link_id,))
+    if cur.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Link not found")
+    conn.commit()
+    return {"message": "Link deleted"}
+
+
+@app.post("/api/links/{link_id}/click")
+def click_link(link_id: str):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("UPDATE links SET clicks = clicks + 1 WHERE id = ?", (link_id,))
+    if cur.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Link not found")
+    conn.commit()
+    cur.execute("SELECT url FROM links WHERE id = ?", (link_id,))
+    row = cur.fetchone()
+    return {"url": row[0]}
+
+
+@app.get("/links", response_class=HTMLResponse)
+def browse_links():
+    links_html = STATIC_DIR / "links.html"
+    if links_html.exists():
+        return links_html.read_text(encoding="utf-8")
+    return HTMLResponse("<h1>Links page not found</h1>", status_code=404)
 
 
 # --------------------------------------------------

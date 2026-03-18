@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Paste - writesomething.fun</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+      background: #0a0a0a;
+      color: #fff;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    header {
+      margin-bottom: 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    h1 { font-size: 1.8rem; font-weight: 700; }
+    .back-link { color: #666; text-decoration: none; font-size: 0.9rem; }
+    .back-link:hover { color: #fff; }
+    .editor-section { margin-bottom: 24px; }
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .toolbar label {
+      font-size: 0.85rem;
+      color: #666;
+    }
+    .toolbar select, .toolbar input, .toolbar button {
+      background: #111;
+      border: 1px solid #333;
+      color: #888;
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      border-radius: 6px;
+      font-family: inherit;
+    }
+    .toolbar select:focus, .toolbar input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      color: #fff;
+    }
+    .toolbar select option { background: #111; }
+    textarea {
+      width: 100%;
+      background: #111;
+      border: 1px solid #222;
+      color: #e0e0e0;
+      padding: 20px;
+      font-size: 0.9rem;
+      font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+      border-radius: 8px;
+      min-height: 400px;
+      resize: vertical;
+      line-height: 1.6;
+      tab-size: 4;
+    }
+    textarea:focus { outline: none; border-color: #3b82f6; }
+    .actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    button {
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      padding: 12px 24px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover { background: #2563eb; }
+    button:disabled { background: #333; cursor: not-allowed; }
+    button.secondary { background: #222; border: 1px solid #333; }
+    button.secondary:hover { background: #2a2a2a; }
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #111;
+      border: 1px solid #333;
+      padding: 16px 24px;
+      border-radius: 8px;
+      animation: slideIn 0.3s ease;
+      z-index: 1000;
+      max-width: 400px;
+    }
+    .toast.success { border-color: #22c55e; }
+    .toast.error { border-color: #ef4444; }
+    .toast-url {
+      font-family: monospace;
+      background: #1a1a1a;
+      padding: 8px 12px;
+      border-radius: 4px;
+      margin-top: 8px;
+      font-size: 0.85rem;
+      word-break: break-all;
+    }
+    .toast-url a { color: #3b82f6; text-decoration: none; }
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .preview-section {
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 8px;
+      padding: 20px;
+      display: none;
+      margin-bottom: 24px;
+    }
+    .preview-section.visible { display: block; }
+    .preview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .preview-header h2 { font-size: 1rem; color: #888; }
+    .preview-header button { padding: 6px 16px; font-size: 0.8rem; }
+    .preview-code {
+      background: #0d0d0d;
+      border-radius: 6px;
+      padding: 16px;
+      overflow-x: auto;
+      max-height: 500px;
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+    .preview-code pre { margin: 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <a href="/" class="back-link">← Back</a>
+        <h1>New Paste</h1>
+      </div>
+    </header>
+
+    <div class="editor-section">
+      <div class="toolbar">
+        <label for="language">Language:</label>
+        <select id="language">
+          <option value="plaintext">Plain Text</option>
+          <option value="python">Python</option>
+          <option value="javascript">JavaScript</option>
+          <option value="typescript">TypeScript</option>
+          <option value="java">Java</option>
+          <option value="cpp">C++</option>
+          <option value="c">C</option>
+          <option value="csharp">C#</option>
+          <option value="go">Go</option>
+          <option value="rust">Rust</option>
+          <option value="ruby">Ruby</option>
+          <option value="php">PHP</option>
+          <option value="swift">Swift</option>
+          <option value="kotlin">Kotlin</option>
+          <option value="bash">Bash</option>
+          <option value="shell">Shell</option>
+          <option value="sql">SQL</option>
+          <option value="html">HTML</option>
+          <option value="css">CSS</option>
+          <option value="json">JSON</option>
+          <option value="yaml">YAML</option>
+          <option value="xml">XML</option>
+          <option value="markdown">Markdown</option>
+          <option value="dockerfile">Dockerfile</option>
+        </select>
+
+        <label for="title">Title:</label>
+        <input type="text" id="title" placeholder="Untitled" maxlength="200" style="width: 180px;">
+
+        <label for="password">Password:</label>
+        <input type="password" id="password" placeholder="Optional" style="width: 140px;">
+
+        <label for="expires">Expires:</label>
+        <select id="expires">
+          <option value="0">Never</option>
+          <option value="3600">1 hour</option>
+          <option value="86400">24 hours</option>
+          <option value="604800">7 days</option>
+        </select>
+      </div>
+
+      <textarea id="code" placeholder="Paste your code or text here..." spellcheck="false"></textarea>
+    </div>
+
+    <div class="preview-section" id="previewSection">
+      <div class="preview-header">
+        <h2>Preview</h2>
+        <button class="secondary" onclick="hidePreview()">Hide Preview</button>
+      </div>
+      <div class="preview-code" id="previewCode"></div>
+    </div>
+
+    <div class="actions">
+      <button id="previewBtn" class="secondary" onclick="showPreview()">Preview</button>
+      <button id="createBtn" onclick="createPaste()">Create Paste</button>
+    </div>
+  </div>
+
+  <script>
+    const textarea = document.getElementById('code');
+
+    textarea.addEventListener('keydown', function(e) {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = this.selectionStart;
+        const end = this.selectionEnd;
+        this.value = this.value.substring(0, start) + '    ' + this.value.substring(end);
+        this.selectionStart = this.selectionEnd = start + 4;
+      }
+    });
+
+    function showPreview() {
+      const code = textarea.value;
+      if (!code) return;
+      const lang = document.getElementById('language').value;
+      const previewSection = document.getElementById('previewSection');
+      const previewCode = document.getElementById('previewCode');
+
+      if (lang === 'plaintext') {
+        previewCode.innerHTML = '<pre>' + escapeHtml(code) + '</pre>';
+      } else {
+        previewCode.innerHTML = '<pre><code class="language-' + lang + '">' + escapeHtml(code) + '</code></pre>';
+        hljs.highlightElement(previewCode.querySelector('code'));
+      }
+
+      previewSection.classList.add('visible');
+    }
+
+    function hidePreview() {
+      document.getElementById('previewSection').classList.remove('visible');
+    }
+
+    async function createPaste() {
+      const content = textarea.value.trim();
+      if (!content) {
+        showToast('Please enter some content', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('createBtn');
+      btn.disabled = true;
+      btn.textContent = 'Creating...';
+
+      const data = {
+        content: content,
+        language: document.getElementById('language').value,
+        title: document.getElementById('title').value.trim() || null,
+        password: document.getElementById('password').value,
+        expires_in: parseInt(document.getElementById('expires').value),
+      };
+
+      try {
+        const res = await fetch('/api/pastes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || 'Failed to create paste');
+        }
+
+        const result = await res.json();
+        showToast('Paste created!', 'success', result.url);
+        textarea.value = '';
+        document.getElementById('title').value = '';
+        document.getElementById('password').value = '';
+        document.getElementById('expires').value = '0';
+        hidePreview();
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Create Paste';
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function showToast(message, type, url) {
+      const toast = document.createElement('div');
+      toast.className = 'toast ' + type;
+      toast.innerHTML = `<div>${message}</div>`;
+      if (url) {
+        toast.innerHTML += `<div class="toast-url"><a href="${url}" target="_blank">${window.location.origin}${url}</a></div>`;
+      }
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 6000);
+    }
+
+    textarea.focus();
+  </script>
+</body>
+</html>
