@@ -21,8 +21,66 @@ port = 42618
 host = "127.0.0.1"
 
 [autonomy]
-level = "supervised"
-workspace_only = true
-max_actions_per_hour = 20
-require_approval_for_medium_risk = true
-block_high_risk_commands = true
+level = "full"
+workspace_only = false
+allowed_commands = [
+    "git",
+    "npm",
+    "cargo",
+    "python",
+    "python3",
+    "node",
+    "vim",
+    "nano",
+    "sqlite3",
+    "ls",
+    "cat",
+    "grep",
+    "find",
+    "echo",
+    "pwd",
+    "wc",
+    "head",
+    "tail",
+    "date",
+    "xurl",
+    "curl",
+    "wget",
+    "rsync",
+    "cp",
+    "mv",
+    "rm",
+    "mkdir",
+    "touch",
+    "chmod",
+    "chown",
+    "tee",
+    "ssh",
+    "scp",
+    "systemctl",
+    "journalctl",
+    "ss",
+    "df",
+    "free",
+    "top",
+    "ps",
+    "kill",
+    "pgrep",
+    "tar",
+    "zip",
+    "unzip",
+]
+forbidden_paths = [
+    "/etc",
+    "/root",
+    "/boot",
+    "/dev",
+    "/proc",
+    "/sys",
+]
+allowed_roots = [
+    "/home/mandar",
+]
+max_actions_per_hour = 100
+require_approval_for_medium_risk = false
+block_high_risk_commands = false
