@@ -29,3 +29,10 @@ node_modules/
 Thumbs.db
 venv/
 data/
+
+# ZeroClaw runtime data
+.zeroclaw/
+zeroclaw/workspace/devices.db
+zeroclaw/workspace/memory/
+zeroclaw/workspace/sessions/
+zeroclaw/workspace/state/

@@ -1,0 +1,6 @@
+default_provider = "nvidia"
+default_model = "moonshotai/kimi-k2.5"
+workspace_dir = "/home/mandar/.zeroclaw/workspace"
+
+[providers.nvidia]
+api_key = "nvapi-YOUR_KEY_HERE"

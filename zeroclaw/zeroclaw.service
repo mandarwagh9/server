@@ -1,0 +1,15 @@
+[Unit]
+Description=ZeroClaw AI Personal Assistant
+After=network.target
+
+[Service]
+Type=simple
+User=mandar
+WorkingDirectory=/home/mandar/.zeroclaw
+Environment="HOME=/home/mandar"
+ExecStart=/home/mandar/.cargo/bin/zeroclaw gateway start -p 42618
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -16,6 +16,8 @@ ingress:
     service: http://127.0.0.1:5001
   - hostname: skribbl.writesomething.fun
     service: http://127.0.0.1:5002
+  - hostname: claw.writesomething.fun
+    service: http://127.0.0.1:42618
   - hostname: auth.writesomething.fun
     service: http://localhost:8080
   - hostname: authadmin.writesomething.fun
