@@ -20,13 +20,20 @@ curl -fsSL https://raw.githubusercontent.com/zeroclaw-labs/zeroclaw/master/insta
    mkdir -p ~/.zeroclaw/workspace/{sessions,memory,state,cron,skills}
    ```
 
-2. Copy config:
+2. Clone open-skills repo (for bundled skills):
    ```
-   cp zeroclaw/config.toml ~/.zeroclaw/config.toml
-   # Edit ~/.zeroclaw/config.toml and add your NVIDIA_API_KEY
+   git clone --depth 1 https://github.com/besoeasy/open-skills ~/open-skills
    ```
 
-3. Copy workspace files:
+3. Copy config:
+   ```
+   cp zeroclaw/config.toml ~/.zeroclaw/config.toml
+   # Edit ~/.zeroclaw/config.toml and add:
+   #   - NVIDIA_API_KEY env var in systemd service
+   #   - Telegram bot_token (from @BotFather)
+   ```
+
+4. Copy workspace files:
    ```
    cp -r zeroclaw/workspace/* ~/.zeroclaw/workspace/
    ```
